@@ -8,17 +8,31 @@
   box-sizing: border-box;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
 }
 
 body {
   margin: 0;
-  background: #FAF7EF;
-  color: #231F1B;
+  background: #F7F4EE;
+  color: #171310;
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+::selection {
+  background: #086AB3;
+  color: #FFFFFF;
+}
+
+:focus-visible {
+  outline: 2px solid #086AB3;
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* En iOS Safari, un input con letra menor a 16px hace que el navegador
@@ -31,38 +45,159 @@ body {
   }
 }
 
-/* El lector de código de barras escribe muy rápido: evitamos que el input
-   se achique con textos largos en pantallas angostas. */
 input {
   min-width: 0;
 }
 
-::selection {
-  background: #086AB3;
-  color: #FDFAF5;
+/* Los precios se leen en columna: todos los dígitos con el mismo ancho para
+   que las comas queden alineadas de una fila a la otra. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
-:focus-visible {
-  outline: 2px solid #086AB3;
-  outline-offset: 2px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
+/* Volante del ticket: el borde dentado de un papel cortado. */
 .receipt-edge {
-  background-image: radial-gradient(circle at 8px 0, transparent 8px, #FDFAF5 8.5px);
+  background-image: radial-gradient(circle at 8px 0, transparent 8px, #EFEAE0 8.5px);
   background-size: 20px 16px;
   background-position: top;
   background-repeat: repeat-x;
   height: 10px;
 }
 
-.tabular {
-  font-variant-numeric: tabular-nums;
+/* Etiquetas cortas en mayúscula, para títulos de sección. */
+.eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Barras de scroll discretas, que no rompan la estética del panel. */
+.scroll-soft {
+  scrollbar-width: thin;
+  scrollbar-color: #D8D0C2 transparent;
+}
+.scroll-soft::-webkit-scrollbar {
+  width: 8px;
+}
+.scroll-soft::-webkit-scrollbar-thumb {
+  background: #D8D0C2;
+  border-radius: 999px;
+}
+.scroll-soft::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ------------------------------------------------------------------ papel */
+
+/* `print-only` no ocupa lugar en pantalla y aparece recién al imprimir; los
+   elementos marcados `no-print` (menú, botones, tooltips) desaparecen. */
+.print-only {
+  display: none !important;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 14mm 12mm;
+  }
+
+  html,
+  body {
+    height: auto;
+    background: #FFFFFF !important;
+  }
+
+  /* Sin esto los navegadores descartan los fondos de color y las barras de
+     los gráficos salen en blanco. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .no-print,
+  .no-print * {
+    display: none !important;
+  }
+
+  .print-only {
+    display: flex !important;
+  }
+
+  /* El contenido ocupa la hoja entera: el hueco del menú lateral no va. */
+  body > #root > div > div {
+    padding-left: 0 !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  /* Las tarjetas se imprimen planas, sin sombras ni fondos grises. */
+  .shadow-card,
+  .shadow-lift,
+  .shadow-pop,
+  .shadow-pay {
+    box-shadow: none !important;
+  }
+
+  /* Nada se corta al medio entre dos hojas. */
+  section,
+  table,
+  li {
+    break-inside: avoid;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  a[href]::after {
+    content: '';
+  }
+}
+
+/* ------------------------------------------------- ticket de mostrador */
+
+/* El ticket vive en un portal colgado del <body>, fuera de #root. Cuando se
+   imprime un ticket ocultamos la app entera y queda sólo el papel de 80 mm. */
+.ticket-sheet {
+  display: none;
+}
+
+@media print {
+  body.printing-ticket > #root {
+    display: none !important;
+  }
+
+  body.printing-ticket .ticket-sheet {
+    display: block;
+    width: 72mm;
+    margin: 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    line-height: 1.45;
+    color: #000;
+  }
+
+  body.printing-ticket {
+    background: #fff;
+  }
+}
+
+@page ticket {
+  size: 80mm auto;
+  margin: 4mm;
 }

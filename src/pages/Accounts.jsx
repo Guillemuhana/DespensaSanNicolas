@@ -76,81 +76,128 @@ export default function Accounts() {
     (a, b) => (balances[b.id] || 0) - (balances[a.id] || 0)
   )
   const totalDebt = Object.values(balances).reduce((s, v) => s + Math.max(v, 0), 0)
+  const owingCount = Object.values(balances).filter((v) => v > 0).length
 
   return (
-    <div className="grid gap-4 md:gap-6 md:grid-cols-[320px_1fr]">
+    <div className="grid gap-4 md:gap-6 md:grid-cols-[340px_1fr]">
       <div>
-        <div className="bg-awning text-white rounded-md p-4 mb-4">
-          <p className="text-xs uppercase tracking-widest text-white/70 mb-1">Total a cobrar</p>
-          <p className="font-mono tabular text-2xl font-semibold">
+        <div className="mb-4 overflow-hidden rounded-2xl bg-awning p-5 text-white shadow-lift">
+          <p className="eyebrow text-white/70">Total a cobrar</p>
+          <p className="mt-1.5 font-mono tabular text-3xl font-bold leading-none">
             ${totalDebt.toLocaleString('es-AR', { maximumFractionDigits: 2 })}
+          </p>
+          <p className="mt-2 text-sm text-white/75">
+            {owingCount === 0
+              ? 'Nadie debe nada'
+              : `${owingCount} ${owingCount === 1 ? 'cliente adeuda' : 'clientes adeudan'}`}
           </p>
         </div>
 
-        <form onSubmit={handleAddCustomer} className="flex gap-2 mb-4">
+        <form onSubmit={handleAddCustomer} className="mb-4 flex gap-2">
           <input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="Nuevo cliente..."
-            className="flex-1 border border-paper2 rounded-md px-3 py-2 bg-white focus:border-awning"
+            className="min-w-0 flex-1 rounded-xl border border-line bg-surface px-4 py-2.5 shadow-card transition-colors focus:border-awning focus:outline-none"
           />
           <button
             type="submit"
-            className="px-4 py-2 rounded-md bg-awning text-white font-medium hover:bg-awning-dark"
+            aria-label="Agregar cliente"
+            className="shrink-0 rounded-xl bg-awning px-4 font-semibold text-white shadow-card transition-colors hover:bg-awning-dark"
           >
-            +
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
           </button>
         </form>
 
-        <div className="bg-white border border-paper2 rounded-md divide-y divide-paper2 overflow-hidden">
-          {sortedCustomers.map((c) => {
-            const bal = balances[c.id] || 0
-            return (
-              <button
-                key={c.id}
-                onClick={() => selectCustomer(c)}
-                className={`w-full flex items-center justify-between px-4 py-3 text-left ${
-                  selected?.id === c.id ? 'bg-mustard-light/40' : 'hover:bg-paper2'
-                }`}
-              >
-                <span className="text-ink font-medium min-w-0 truncate pr-3">{c.name}</span>
-                <span
-                  className={`font-mono tabular text-sm font-semibold ${
-                    bal > 0 ? 'text-brick' : 'text-inkfaint'
-                  } shrink-0`}
-                >
-                  ${bal.toLocaleString('es-AR', { maximumFractionDigits: 2 })}
-                </span>
-              </button>
-            )
-          })}
-          {sortedCustomers.length === 0 && (
-            <p className="text-inkfaint text-sm px-4 py-6 text-center">Todavía no hay clientes.</p>
-          )}
+        <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
+          <ul className="divide-y divide-line/70">
+            {sortedCustomers.map((c) => {
+              const bal = balances[c.id] || 0
+              const active = selected?.id === c.id
+              return (
+                <li key={c.id}>
+                  <button
+                    onClick={() => selectCustomer(c)}
+                    className={`flex w-full items-center justify-between gap-3 border-l-[3px] px-4 py-3 text-left transition-colors ${
+                      active
+                        ? 'border-awning bg-awning-50'
+                        : 'border-transparent hover:bg-paper2/60'
+                    }`}
+                  >
+                    <span className="min-w-0 truncate font-medium text-ink">{c.name}</span>
+                    <span
+                      className={`shrink-0 font-mono tabular text-sm font-semibold ${
+                        bal > 0 ? 'text-brick' : 'text-inkfaint/70'
+                      }`}
+                    >
+                      ${bal.toLocaleString('es-AR', { maximumFractionDigits: 2 })}
+                    </span>
+                  </button>
+                </li>
+              )
+            })}
+            {sortedCustomers.length === 0 && (
+              <li className="px-4 py-10 text-center text-sm text-inkfaint">
+                Todavía no hay clientes.
+              </li>
+            )}
+          </ul>
         </div>
       </div>
 
       <div>
         {!selected ? (
-          <div className="h-full flex items-center justify-center text-center px-4 text-inkfaint bg-white border border-paper2 rounded-md min-h-[180px] md:min-h-[300px]">
-            Elegí un cliente para ver su cuenta.
+          <div className="flex h-full min-h-[220px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-line px-4 text-center md:min-h-[340px]">
+            <span aria-hidden="true" className="text-inkfaint/30">
+              <svg
+                width="40"
+                height="40"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20" />
+                <circle cx="10" cy="8" r="3.5" />
+                <path d="M18 11h4M20 9v4" />
+              </svg>
+            </span>
+            <p className="text-sm text-inkfaint">Elegí un cliente para ver su cuenta.</p>
           </div>
         ) : (
-          <div className="bg-white border border-paper2 rounded-md p-4 sm:p-5">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 mb-5">
-              <h2 className="font-display text-xl font-semibold text-ink break-words min-w-0">
-                {selected.name}
-              </h2>
-              <span
-                className={`font-mono tabular text-2xl font-semibold ${
-                  (balances[selected.id] || 0) > 0 ? 'text-brick' : 'text-awning'
-                }`}
-              >
-                ${(balances[selected.id] || 0).toLocaleString('es-AR', { maximumFractionDigits: 2 })}
-              </span>
+          <div className="rounded-2xl border border-line bg-surface p-4 shadow-card sm:p-6">
+            <div className="mb-5 flex flex-wrap items-end justify-between gap-x-4 gap-y-2 border-b border-line pb-5">
+              <div className="min-w-0">
+                <p className="eyebrow text-inkfaint">Cliente</p>
+                <h2 className="mt-1 break-words font-display text-xl font-semibold text-ink sm:text-2xl">
+                  {selected.name}
+                </h2>
+              </div>
+              <div className="text-right">
+                <p className="eyebrow text-inkfaint">Saldo</p>
+                <span
+                  className={`font-mono tabular text-2xl font-bold sm:text-3xl ${
+                    (balances[selected.id] || 0) > 0 ? 'text-brick' : 'text-awning'
+                  }`}
+                >
+                  ${(balances[selected.id] || 0).toLocaleString('es-AR', { maximumFractionDigits: 2 })}
+                </span>
+              </div>
             </div>
 
-            <form onSubmit={handleRegisterPayment} className="flex flex-col sm:flex-row gap-2 mb-6">
+            <form onSubmit={handleRegisterPayment} className="mb-6 flex flex-col gap-2 sm:flex-row">
               <input
                 type="number"
                 step="0.01"
@@ -158,32 +205,65 @@ export default function Accounts() {
                 value={paymentAmount}
                 onChange={(e) => setPaymentAmount(e.target.value)}
                 placeholder="Monto que paga"
-                className="flex-1 min-w-0 border border-paper2 rounded-md px-3 py-2 font-mono focus:border-awning"
+                className="min-w-0 flex-1 rounded-xl border border-line bg-surface px-4 py-2.5 font-mono tabular transition-colors focus:border-awning focus:outline-none"
               />
               <button
                 type="submit"
-                className="px-4 py-2.5 sm:py-2 rounded-md bg-mustard text-ink font-medium hover:bg-mustard-dark whitespace-nowrap"
+                className="whitespace-nowrap rounded-xl bg-awning px-5 py-2.5 font-semibold text-white shadow-card transition-colors hover:bg-awning-dark"
               >
                 Registrar pago
               </button>
             </form>
 
-            <p className="font-mono text-xs tracking-widest text-inkfaint uppercase mb-2">
-              Movimientos
-            </p>
-            <ul className="divide-y divide-paper2">
+            <p className="eyebrow mb-1 text-inkfaint">Movimientos</p>
+            <ul className="divide-y divide-line/70">
               {movements.map((m) => (
-                <li key={m.id} className="py-2.5 flex items-center justify-between gap-3 text-sm">
-                  <div className="min-w-0">
-                    <p className="text-ink">{m.note || (m.type === 'charge' ? 'Cargo' : 'Pago')}</p>
-                    <p className="text-inkfaint text-xs">
-                      {new Date(m.created_at).toLocaleString('es-AR')}
-                    </p>
+                <li key={m.id} className="flex items-center justify-between gap-3 py-3 text-sm">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span
+                      aria-hidden="true"
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                        m.type === 'charge'
+                          ? 'bg-brick-50 text-brick'
+                          : 'bg-awning-50 text-awning'
+                      }`}
+                    >
+                      <svg
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        {m.type === 'charge' ? (
+                          <path d="M12 19V5M6 11l6-6 6 6" />
+                        ) : (
+                          <path d="M12 5v14M6 13l6 6 6-6" />
+                        )}
+                      </svg>
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-ink">
+                        {m.note || (m.type === 'charge' ? 'Cargo' : 'Pago')}
+                      </p>
+                      <p className="text-xs text-inkfaint">
+                        {new Date(m.created_at).toLocaleString('es-AR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
                   </div>
                   <span
-                    className={`font-mono tabular font-medium ${
+                    className={`shrink-0 whitespace-nowrap font-mono tabular font-semibold ${
                       m.type === 'charge' ? 'text-brick' : 'text-awning'
-                    } shrink-0 whitespace-nowrap`}
+                    }`}
                   >
                     {m.type === 'charge' ? '+' : '−'}$
                     {Number(m.amount).toLocaleString('es-AR', { maximumFractionDigits: 2 })}
@@ -191,7 +271,9 @@ export default function Accounts() {
                 </li>
               ))}
               {movements.length === 0 && (
-                <p className="text-inkfaint text-sm py-4 text-center">Sin movimientos todavía.</p>
+                <li className="py-8 text-center text-sm text-inkfaint">
+                  Sin movimientos todavía.
+                </li>
               )}
             </ul>
           </div>
@@ -199,7 +281,7 @@ export default function Accounts() {
       </div>
 
       {status && (
-        <div className="rounded-md px-4 py-3 text-sm font-medium bg-brick-light/30 text-brick-dark md:col-span-2">
+        <div className="rounded-xl border border-brick-100 bg-brick-50 px-4 py-3 text-sm font-medium text-brick-dark md:col-span-2">
           {status.text}
         </div>
       )}

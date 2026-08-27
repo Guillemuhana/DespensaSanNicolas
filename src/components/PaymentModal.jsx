@@ -21,6 +21,9 @@ export default function PaymentModal({ total, customers, onConfirm, onCancel, on
     c.name.toLowerCase().includes(customerSearch.toLowerCase())
   )
 
+  // Atajos de billetes: los importes redondos con los que suele pagar la gente.
+  const suggestions = [1000, 2000, 5000, 10000, 20000].filter((v) => v >= total).slice(0, 3)
+
   async function handleConfirm() {
     setBusy(true)
     try {
@@ -35,42 +38,40 @@ export default function PaymentModal({ total, customers, onConfirm, onCancel, on
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-ink/40 overflow-y-auto flex items-end sm:items-center justify-center p-3 sm:p-4">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-5 sm:p-6 border border-paper2 my-auto">
-        <p className="font-mono text-xs tracking-widest text-mustard-dark uppercase mb-1">Cobrar</p>
-        <div className="flex items-baseline justify-between mb-5">
-          <h2 className="font-display text-xl font-semibold text-ink">Total</h2>
-          <span className="font-mono tabular text-3xl font-semibold text-ink">
+    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-ink/50 p-3 backdrop-blur-sm sm:items-center sm:p-4">
+      <div className="animate-rise my-auto w-full max-w-md rounded-2xl border border-line bg-surface p-5 shadow-pop sm:p-6">
+        <div className="mb-5 flex items-end justify-between gap-3 border-b border-line pb-5">
+          <div>
+            <p className="eyebrow text-brick">Cobrar</p>
+            <h2 className="mt-0.5 font-display text-lg font-semibold text-ink">Total a pagar</h2>
+          </div>
+          <span className="font-mono tabular text-3xl font-bold text-ink">
             ${total.toLocaleString('es-AR', { maximumFractionDigits: 2 })}
           </span>
         </div>
 
-        <div className="flex gap-2 mb-5">
-          <button
-            onClick={() => setMethod('cash')}
-            className={`flex-1 py-2 rounded-md font-medium border ${
-              method === 'cash'
-                ? 'bg-awning text-white border-awning'
-                : 'border-paper2 text-inkfaint hover:bg-paper2'
-            }`}
-          >
-            Efectivo
-          </button>
-          <button
-            onClick={() => setMethod('account')}
-            className={`flex-1 py-2 rounded-md font-medium border ${
-              method === 'account'
-                ? 'bg-awning text-white border-awning'
-                : 'border-paper2 text-inkfaint hover:bg-paper2'
-            }`}
-          >
-            Cuenta corriente
-          </button>
+        <div className="mb-5 flex gap-1 rounded-xl bg-paper2 p-1">
+          {[
+            { id: 'cash', label: 'Efectivo' },
+            { id: 'account', label: 'Cuenta corriente' },
+          ].map((opt) => (
+            <button
+              key={opt.id}
+              onClick={() => setMethod(opt.id)}
+              className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-all ${
+                method === opt.id
+                  ? 'bg-surface text-ink shadow-card'
+                  : 'text-inkfaint hover:text-ink'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
 
         {method === 'cash' ? (
-          <div className="mb-2">
-            <label className="block text-sm font-medium text-ink mb-1">Paga con ($)</label>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-inkfaint">Paga con ($)</label>
             <input
               ref={cashInputRef}
               type="number"
@@ -80,13 +81,36 @@ export default function PaymentModal({ total, customers, onConfirm, onCancel, on
               value={paidAmount}
               onChange={(e) => setPaidAmount(e.target.value)}
               placeholder="0"
-              className="w-full text-3xl font-mono tabular border border-paper2 rounded-md px-4 py-3 mb-2 focus:border-awning"
+              className="w-full rounded-xl border border-line bg-surface px-4 py-3 font-mono tabular text-3xl font-semibold transition-colors focus:border-awning focus:outline-none"
             />
-            <div className="flex items-baseline justify-between px-1">
-              <span className="text-inkfaint">Vuelto</span>
+
+            {suggestions.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {suggestions.map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setPaidAmount(String(v))}
+                    className="rounded-full border border-line bg-paper px-3 py-1 font-mono text-sm font-medium text-inkfaint transition-colors hover:border-awning hover:text-awning"
+                  >
+                    ${v.toLocaleString('es-AR')}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setPaidAmount(String(total))}
+                  className="rounded-full border border-line bg-paper px-3 py-1 text-sm font-medium text-inkfaint transition-colors hover:border-awning hover:text-awning"
+                >
+                  Justo
+                </button>
+              </div>
+            )}
+
+            <div className="mt-4 flex items-center justify-between rounded-xl bg-paper2/70 px-4 py-3">
+              <span className="text-sm font-medium text-inkfaint">Vuelto</span>
               <span
-                className={`font-mono tabular text-2xl font-semibold ${
-                  change < 0 ? 'text-brick' : 'text-awning'
+                className={`font-mono tabular text-2xl font-bold ${
+                  change < 0 ? 'text-inkfaint/50' : 'text-awning'
                 }`}
               >
                 ${Math.max(change, 0).toLocaleString('es-AR', { maximumFractionDigits: 2 })}
@@ -94,56 +118,75 @@ export default function PaymentModal({ total, customers, onConfirm, onCancel, on
             </div>
           </div>
         ) : (
-          <div className="mb-2">
-            <label className="block text-sm font-medium text-ink mb-1">Cliente</label>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-inkfaint">Cliente</label>
             <input
               type="text"
               value={customerSearch}
               onChange={(e) => setCustomerSearch(e.target.value)}
               placeholder="Buscar cliente..."
-              className="w-full border border-paper2 rounded-md px-3 py-2 mb-2 focus:border-awning"
+              className="mb-2 w-full rounded-xl border border-line bg-surface px-4 py-2.5 transition-colors focus:border-awning focus:outline-none"
             />
-            <div className="max-h-40 overflow-y-auto border border-paper2 rounded-md divide-y divide-paper2">
+            <div className="scroll-soft max-h-44 overflow-y-auto rounded-xl border border-line">
               {filteredCustomers.length === 0 ? (
-                <div className="p-3">
-                  <p className="text-inkfaint text-sm mb-2">No se encontró ningún cliente.</p>
+                <div className="p-4">
+                  <p className="mb-2 text-sm text-inkfaint">No se encontró ningún cliente.</p>
                   <button
                     type="button"
                     onClick={() => onNewCustomer(customerSearch)}
-                    className="text-awning font-medium text-sm hover:underline"
+                    className="text-sm font-semibold text-awning hover:underline"
                   >
-                    + Crear "{customerSearch || 'nuevo cliente'}"
+                    + Crear &quot;{customerSearch || 'nuevo cliente'}&quot;
                   </button>
                 </div>
               ) : (
-                filteredCustomers.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => setCustomerId(c.id)}
-                    className={`w-full text-left px-3 py-2 ${
-                      customerId === c.id ? 'bg-mustard-light/40' : 'hover:bg-paper2'
-                    }`}
-                  >
-                    {c.name}
-                  </button>
-                ))
+                <ul className="divide-y divide-line/70">
+                  {filteredCustomers.map((c) => (
+                    <li key={c.id}>
+                      <button
+                        type="button"
+                        onClick={() => setCustomerId(c.id)}
+                        className={`flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors ${
+                          customerId === c.id
+                            ? 'bg-awning-50 font-semibold text-awning-dark'
+                            : 'hover:bg-paper2/60'
+                        }`}
+                      >
+                        {c.name}
+                        {customerId === c.id && (
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.6"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M20 6L9 17l-5-5" />
+                          </svg>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
           </div>
         )}
 
-        <div className="flex gap-2 mt-5">
+        <div className="mt-5 flex gap-2">
           <button
             onClick={onCancel}
-            className="flex-1 py-3 rounded-md border border-paper2 text-inkfaint font-medium hover:bg-paper2"
+            className="flex-1 rounded-xl border border-line py-3 font-semibold text-inkfaint transition-colors hover:bg-paper2"
           >
             Cancelar
           </button>
           <button
             onClick={handleConfirm}
             disabled={busy || (method === 'cash' ? !canConfirmCash : !canConfirmAccount)}
-            className="flex-1 py-3 rounded-md bg-awning text-white font-medium hover:bg-awning-dark disabled:opacity-40"
+            className="flex-1 rounded-xl bg-brick py-3 font-semibold text-white shadow-pay transition-all hover:bg-brick-dark active:translate-y-px disabled:bg-paper2 disabled:text-inkfaint/70 disabled:shadow-none"
           >
             {busy ? 'Cobrando…' : 'Confirmar'}
           </button>

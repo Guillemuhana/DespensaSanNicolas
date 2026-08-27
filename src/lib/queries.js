@@ -1,5 +1,20 @@
 import { supabase } from './supabaseClient'
 
+/**
+ * La migración 002 agrega costos de compra y gastos. Mientras no se haya
+ * corrido, las columnas no existen y PostgREST rechaza cualquier escritura
+ * que las mencione. Detectamos si ya está aplicada mirando lo que devuelve
+ * `products` y adaptamos las escrituras; cuando se corra la migración, todo
+ * se activa solo sin tocar código.
+ */
+export const schema = { costs: false }
+
+function withoutCost(payload) {
+  if (schema.costs) return payload
+  const { cost: _omitted, ...rest } = payload
+  return rest
+}
+
 // ---------- Productos / stock ----------
 
 export async function fetchProducts() {
@@ -8,6 +23,7 @@ export async function fetchProducts() {
     .select('*')
     .order('name', { ascending: true })
   if (error) throw error
+  if (data.length > 0) schema.costs = 'cost' in data[0]
   return data
 }
 
@@ -24,7 +40,7 @@ export async function findProductByBarcode(barcode) {
 export async function createProduct(product) {
   const { data, error } = await supabase
     .from('products')
-    .insert(product)
+    .insert(withoutCost(product))
     .select()
     .single()
   if (error) throw error
@@ -34,7 +50,7 @@ export async function createProduct(product) {
 export async function updateProduct(id, patch) {
   const { data, error } = await supabase
     .from('products')
-    .update(patch)
+    .update(withoutCost(patch))
     .eq('id', id)
     .select()
     .single()
@@ -121,12 +137,16 @@ export async function addAccountMovement(movement) {
 // ---------- Ventas ----------
 
 export async function createSale({ items, paymentMethod, customerId, total, paidAmount, changeDue }) {
+  // Lo que costó comprar lo que se vendió: total - costTotal es la ganancia.
+  const costTotal = items.reduce((s, it) => s + (Number(it.cost) || 0) * Number(it.quantity), 0)
+
   const { data: sale, error: saleErr } = await supabase
     .from('sales')
     .insert({
       customer_id: customerId || null,
       payment_method: paymentMethod,
       total,
+      ...(schema.costs ? { cost_total: Number(costTotal.toFixed(2)) } : {}),
       paid_amount: paidAmount ?? null,
       change_due: changeDue ?? null,
     })
@@ -140,6 +160,7 @@ export async function createSale({ items, paymentMethod, customerId, total, paid
     product_name: it.name,
     quantity: it.quantity,
     unit_price: it.price,
+    ...(schema.costs ? { unit_cost: Number(it.cost) || 0 } : {}),
     subtotal: it.subtotal,
   }))
   const { error: itemsErr } = await supabase.from('sale_items').insert(saleItems)
@@ -172,4 +193,57 @@ export async function fetchRecentSales(limit = 20) {
     .limit(limit)
   if (error) throw error
   return data
+}
+
+// ---------- Estadísticas ----------
+
+// Supabase corta las respuestas en 1000 filas, así que paginamos a mano.
+async function fetchAllPages(build, pageSize = 1000) {
+  const rows = []
+  for (let page = 0; ; page++) {
+    const { data, error } = await build().range(page * pageSize, (page + 1) * pageSize - 1)
+    if (error) throw error
+    rows.push(...data)
+    if (data.length < pageSize) return rows
+  }
+}
+
+export function fetchSalesSince(sinceIso) {
+  return fetchAllPages(() =>
+    supabase
+      .from('sales')
+      .select('*')
+      .gte('created_at', sinceIso)
+      .order('created_at', { ascending: true })
+  )
+}
+
+export function fetchSaleItemsSince(sinceIso) {
+  return fetchAllPages(() =>
+    supabase
+      .from('sale_items')
+      .select('*, sales!inner(created_at)')
+      .gte('sales.created_at', sinceIso)
+  )
+}
+
+// ---------- Gastos ----------
+
+export async function fetchExpenses(sinceIso) {
+  let q = supabase.from('expenses').select('*').order('spent_on', { ascending: false })
+  if (sinceIso) q = q.gte('spent_on', sinceIso.slice(0, 10))
+  const { data, error } = await q
+  if (error) throw error
+  return data
+}
+
+export async function createExpense(expense) {
+  const { data, error } = await supabase.from('expenses').insert(expense).select().single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteExpense(id) {
+  const { error } = await supabase.from('expenses').delete().eq('id', id)
+  if (error) throw error
 }

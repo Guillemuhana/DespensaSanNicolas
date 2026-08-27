@@ -19,24 +19,28 @@ export default function WeightEntry({ product, onConfirm, onCancel }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-ink/40 overflow-y-auto flex items-end sm:items-center justify-center p-3 sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-ink/50 p-3 backdrop-blur-sm sm:items-center sm:p-4">
       <form
         onSubmit={handleSubmit}
-        className="bg-white rounded-lg shadow-lg w-full max-w-sm p-5 sm:p-6 border border-paper2 my-auto"
+        className="animate-rise my-auto w-full max-w-sm rounded-2xl border border-line bg-surface p-5 shadow-pop sm:p-6"
       >
-        <p className="font-mono text-xs tracking-widest text-mustard-dark uppercase mb-1">
-          Producto por peso
-        </p>
-        <h2 className="font-display text-xl font-semibold text-ink mb-1">{product.name}</h2>
-        <p className="text-inkfaint text-sm mb-4">
-          ${Number(product.price).toLocaleString('es-AR')} el kg · quedan{' '}
-          {Number(product.stock).toLocaleString('es-AR')} kg
+        <p className="eyebrow text-brick">Producto por peso</p>
+        <h2 className="mt-1 font-display text-xl font-semibold text-ink">{product.name}</h2>
+        <p className="mt-1 text-sm text-inkfaint">
+          <span className="font-mono tabular">
+            ${Number(product.price).toLocaleString('es-AR')}
+          </span>{' '}
+          el kg · quedan{' '}
+          <span className="font-mono tabular">
+            {Number(product.stock).toLocaleString('es-AR')} kg
+          </span>
         </p>
 
-        <label className="block text-sm font-medium text-ink mb-1">
+        <label htmlFor="weight-amount" className="mb-1.5 mt-5 block text-xs font-semibold text-inkfaint">
           ¿Cuánto vendiste? ($)
         </label>
         <input
+          id="weight-amount"
           ref={inputRef}
           type="number"
           inputMode="decimal"
@@ -45,28 +49,34 @@ export default function WeightEntry({ product, onConfirm, onCancel }) {
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder="0"
-          className="w-full text-3xl font-mono tabular border border-paper2 rounded-md px-4 py-3 mb-2 focus:border-awning"
+          className="w-full rounded-xl border border-line bg-surface px-4 py-3 font-mono tabular text-3xl font-semibold transition-colors focus:border-awning focus:outline-none"
         />
 
-        <p className="text-inkfaint text-sm mb-4 tabular">
-          = {kg > 0 ? kg.toLocaleString('es-AR', { maximumFractionDigits: 3 }) : '0'} kg
-          {!enoughStock && amountNum > 0 && (
-            <span className="text-brick font-medium"> · no hay tanto stock</span>
-          )}
-        </p>
+        <div className="mt-3 flex items-center justify-between rounded-xl bg-paper2/70 px-4 py-3">
+          <span className="text-sm font-medium text-inkfaint">Equivale a</span>
+          <span className="font-mono tabular text-xl font-bold text-ink">
+            {kg > 0 ? kg.toLocaleString('es-AR', { maximumFractionDigits: 3 }) : '0'} kg
+          </span>
+        </div>
 
-        <div className="flex gap-2">
+        {!enoughStock && amountNum > 0 && (
+          <p className="mt-2 rounded-lg border border-brick-100 bg-brick-50 px-3 py-2 text-sm font-medium text-brick-dark">
+            No hay tanto stock: quedan {Number(product.stock).toLocaleString('es-AR')} kg.
+          </p>
+        )}
+
+        <div className="mt-5 flex gap-2">
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 py-3 rounded-md border border-paper2 text-inkfaint font-medium hover:bg-paper2"
+            className="flex-1 rounded-xl border border-line py-3 font-semibold text-inkfaint transition-colors hover:bg-paper2"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={amountNum <= 0}
-            className="flex-1 py-3 rounded-md bg-awning text-white font-medium hover:bg-awning-dark disabled:opacity-40"
+            className="flex-1 rounded-xl bg-awning py-3 font-semibold text-white shadow-card transition-all hover:bg-awning-dark active:translate-y-px disabled:bg-paper2 disabled:text-inkfaint/70 disabled:shadow-none"
           >
             Agregar
           </button>
