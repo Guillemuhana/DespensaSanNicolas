@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #FAF7EF;
+  color: #231F1B;
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: #086AB3;
+  color: #FDFAF5;
+}
+
+:focus-visible {
+  outline: 2px solid #086AB3;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.receipt-edge {
+  background-image: radial-gradient(circle at 8px 0, transparent 8px, #FDFAF5 8.5px);
+  background-size: 20px 16px;
+  background-position: top;
+  background-repeat: repeat-x;
+  height: 10px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
