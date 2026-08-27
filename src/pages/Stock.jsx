@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { fetchProducts, createProduct, updateProduct, deleteProduct } from '../lib/queries'
+import {
+  fetchProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  fetchSuppliers,
+  schema,
+} from '../lib/queries'
+import RestockModal from '../components/RestockModal'
 
 const emptyForm = {
   name: '',
@@ -9,6 +17,7 @@ const emptyForm = {
   cost: '',
   stock: '',
   min_stock: '',
+  supplier_id: '',
 }
 
 const inputClass =
@@ -20,6 +29,8 @@ export default function Stock() {
   const [editingId, setEditingId] = useState(null)
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState(null)
+  const [suppliers, setSuppliers] = useState([])
+  const [restocking, setRestocking] = useState(null)
   const formRef = useRef(null)
 
   useEffect(() => {
@@ -29,6 +40,19 @@ export default function Stock() {
   async function load() {
     try {
       setProducts(await fetchProducts())
+      // Si todavía no se corrió la migración 003 la tabla no existe: el
+      // selector de proveedor simplemente no se muestra.
+      setSuppliers(await fetchSuppliers().catch(() => []))
+    } catch (err) {
+      setStatus({ type: 'error', text: err.message })
+    }
+  }
+
+  async function handleRestock(patch) {
+    try {
+      await updateProduct(restocking.id, patch)
+      setRestocking(null)
+      load()
     } catch (err) {
       setStatus({ type: 'error', text: err.message })
     }
@@ -48,6 +72,7 @@ export default function Stock() {
       cost: p.cost ?? '',
       stock: p.stock,
       min_stock: p.min_stock,
+      supplier_id: p.supplier_id || '',
     })
   }
 
@@ -67,6 +92,7 @@ export default function Stock() {
       cost: Number(form.cost) || 0,
       stock: Number(form.stock) || 0,
       min_stock: Number(form.min_stock) || 0,
+      supplier_id: form.supplier_id || null,
     }
     try {
       if (editingId) {
@@ -174,8 +200,14 @@ export default function Stock() {
                   </span>
                   <span className="flex shrink-0 gap-4">
                     <button
-                      onClick={() => startEdit(p)}
+                      onClick={() => setRestocking(p)}
                       className="py-1 text-sm font-semibold text-awning"
+                    >
+                      Reponer
+                    </button>
+                    <button
+                      onClick={() => startEdit(p)}
+                      className="py-1 text-sm font-semibold text-inkfaint"
                     >
                       Editar
                     </button>
@@ -244,8 +276,14 @@ export default function Stock() {
                     </td>
                     <td className="whitespace-nowrap px-5 py-3 text-right">
                       <button
-                        onClick={() => startEdit(p)}
+                        onClick={() => setRestocking(p)}
                         className="mr-3 text-sm font-semibold text-awning hover:underline"
+                      >
+                        Reponer
+                      </button>
+                      <button
+                        onClick={() => startEdit(p)}
+                        className="mr-3 text-sm font-semibold text-inkfaint hover:underline"
                       >
                         Editar
                       </button>
@@ -398,6 +436,29 @@ export default function Stock() {
               className={`${inputClass} font-mono tabular`}
             />
           </div>
+          {suppliers.length > 0 && (
+            <div>
+              <label
+                htmlFor="prod-supplier"
+                className="mb-1.5 block text-xs font-semibold text-inkfaint"
+              >
+                Proveedor
+              </label>
+              <select
+                id="prod-supplier"
+                value={form.supplier_id}
+                onChange={(e) => setForm({ ...form, supplier_id: e.target.value })}
+                className={inputClass}
+              >
+                <option value="">—</option>
+                {suppliers.map((sup) => (
+                  <option key={sup.id} value={sup.id}>
+                    {sup.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="flex gap-2 pt-1">
             {editingId && (
               <button
@@ -417,6 +478,16 @@ export default function Stock() {
           </div>
         </form>
       </div>
+
+      {restocking && (
+        <RestockModal
+          product={restocking}
+          suppliers={suppliers}
+          canCost={schema.costs}
+          onConfirm={handleRestock}
+          onCancel={() => setRestocking(null)}
+        />
+      )}
     </div>
   )
 }

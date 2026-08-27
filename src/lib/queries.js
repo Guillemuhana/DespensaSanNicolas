@@ -7,12 +7,14 @@ import { supabase } from './supabaseClient'
  * `products` y adaptamos las escrituras; cuando se corra la migración, todo
  * se activa solo sin tocar código.
  */
-export const schema = { costs: false }
+export const schema = { costs: false, suppliers: false }
 
-function withoutCost(payload) {
-  if (schema.costs) return payload
-  const { cost: _omitted, ...rest } = payload
-  return rest
+/** Saca del payload las columnas que la base todavía no tiene. */
+function knownColumns(payload) {
+  const out = { ...payload }
+  if (!schema.costs) delete out.cost
+  if (!schema.suppliers) delete out.supplier_id
+  return out
 }
 
 // ---------- Productos / stock ----------
@@ -23,7 +25,10 @@ export async function fetchProducts() {
     .select('*')
     .order('name', { ascending: true })
   if (error) throw error
-  if (data.length > 0) schema.costs = 'cost' in data[0]
+  if (data.length > 0) {
+    schema.costs = 'cost' in data[0]
+    schema.suppliers = 'supplier_id' in data[0]
+  }
   return data
 }
 
@@ -40,7 +45,7 @@ export async function findProductByBarcode(barcode) {
 export async function createProduct(product) {
   const { data, error } = await supabase
     .from('products')
-    .insert(withoutCost(product))
+    .insert(knownColumns(product))
     .select()
     .single()
   if (error) throw error
@@ -50,7 +55,7 @@ export async function createProduct(product) {
 export async function updateProduct(id, patch) {
   const { data, error } = await supabase
     .from('products')
-    .update(withoutCost(patch))
+    .update(knownColumns(patch))
     .eq('id', id)
     .select()
     .single()
@@ -245,5 +250,65 @@ export async function createExpense(expense) {
 
 export async function deleteExpense(id) {
   const { error } = await supabase.from('expenses').delete().eq('id', id)
+  if (error) throw error
+}
+
+// ---------- Proveedores ----------
+
+export async function fetchSuppliers() {
+  const { data, error } = await supabase
+    .from('suppliers')
+    .select('*')
+    .order('name', { ascending: true })
+  if (error) throw error
+  return data
+}
+
+export async function createSupplier(supplier) {
+  const { data, error } = await supabase.from('suppliers').insert(supplier).select().single()
+  if (error) throw error
+  return data
+}
+
+export async function updateSupplier(id, patch) {
+  const { data, error } = await supabase
+    .from('suppliers')
+    .update(patch)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteSupplier(id) {
+  const { error } = await supabase.from('suppliers').delete().eq('id', id)
+  if (error) throw error
+}
+
+// ---------- Recordatorios ----------
+
+export async function fetchReminders() {
+  const { data, error } = await supabase
+    .from('reminders')
+    .select('*, suppliers(name)')
+    .order('due_on', { ascending: true })
+  if (error) throw error
+  return data
+}
+
+export async function createReminder(reminder) {
+  const { data, error } = await supabase.from('reminders').insert(reminder).select().single()
+  if (error) throw error
+  return data
+}
+
+export async function setReminderDone(id, done) {
+  const { error } = await supabase.from('reminders').update({ done }).eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteReminder(id) {
+  const { error } = await supabase.from('reminders').delete().eq('id', id)
   if (error) throw error
 }

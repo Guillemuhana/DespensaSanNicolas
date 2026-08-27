@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'motion/react'
 import { Trash2 } from 'lucide-react'
 import { fetchExpenses, createExpense, deleteExpense } from '../lib/queries'
+import { friendlyError } from '../lib/friendlyError'
 
 const CATEGORIES = [
   { id: 'mercaderia', label: 'Mercadería' },
@@ -18,14 +19,6 @@ const todayInput = () => new Date().toISOString().slice(0, 10)
 
 const inputClass =
   'w-full rounded-lg border border-line bg-surface px-3 py-2 transition-colors focus:border-awning focus:outline-none'
-
-/** PostgREST devuelve un mensaje técnico en inglés; lo traducimos. */
-function friendlyError(message) {
-  if (/schema cache|does not exist|public\.expenses/i.test(message)) {
-    return 'La tabla de gastos todavía no existe en la base. Hay que correr el script supabase/002_costos_y_gastos.sql en el SQL Editor de Supabase.'
-  }
-  return message
-}
 
 export default function Expenses() {
   const [expenses, setExpenses] = useState([])
@@ -46,7 +39,7 @@ export default function Expenses() {
     try {
       setExpenses(await fetchExpenses())
     } catch (err) {
-      setStatus(friendlyError(err.message))
+      setStatus(friendlyError(err.message, 'expenses'))
     } finally {
       setLoading(false)
     }
@@ -65,7 +58,7 @@ export default function Expenses() {
       setForm({ description: '', category: 'mercaderia', amount: '', spent_on: todayInput() })
       load()
     } catch (err) {
-      setStatus(friendlyError(err.message))
+      setStatus(friendlyError(err.message, 'expenses'))
     }
   }
 
@@ -74,7 +67,7 @@ export default function Expenses() {
       await deleteExpense(id)
       load()
     } catch (err) {
-      setStatus(friendlyError(err.message))
+      setStatus(friendlyError(err.message, 'expenses'))
     }
   }
 

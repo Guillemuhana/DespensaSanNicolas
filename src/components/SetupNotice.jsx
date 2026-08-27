@@ -7,7 +7,7 @@ export default function SetupNotice() {
           alt="Despensa San Nicolás"
           width="528"
           height="420"
-          className="mb-6 h-16 w-auto"
+          className="mb-6 h-24 w-auto"
         />
         <p className="eyebrow text-brick">Configuración pendiente</p>
         <h1 className="mt-1.5 font-display text-xl font-semibold text-ink sm:text-2xl">

@@ -8,6 +8,7 @@ import {
   fetchAllBalances,
   fetchCustomers,
   fetchExpenses,
+  fetchReminders,
 } from '../lib/queries'
 
 // Curva de salida suave, la misma en toda la app.
@@ -57,6 +58,7 @@ export default function Dashboard() {
   const [balances, setBalances] = useState({})
   const [customers, setCustomers] = useState([])
   const [expenses, setExpenses] = useState([])
+  const [reminders, setReminders] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -68,7 +70,7 @@ export default function Dashboard() {
         // El detalle por renglón sólo para la ventana corta (es lo pesado);
         // las ventas del año son una fila cada una, así que entran holgadas.
         const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString()
-        const [s, it, p, b, c, ex] = await Promise.all([
+        const [s, it, p, b, c, ex, rem] = await Promise.all([
           fetchSalesSince(yearStart),
           fetchSaleItemsSince(since),
           fetchProducts(),
@@ -76,6 +78,7 @@ export default function Dashboard() {
           fetchCustomers(),
           // Si todavía no se corrió la migración 002 la tabla no existe.
           fetchExpenses().catch(() => []),
+          fetchReminders().catch(() => []),
         ])
         if (!alive) return
         setSales(s)
@@ -84,6 +87,7 @@ export default function Dashboard() {
         setBalances(b)
         setCustomers(c)
         setExpenses(ex)
+        setReminders(rem)
       } catch (err) {
         if (alive) setError(err.message)
       } finally {
@@ -279,6 +283,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid items-start gap-4 sm:gap-5 lg:grid-cols-2">
+        <PendingReminders reminders={reminders} />
         <LowStock products={stats.lowStock} />
         <Debtors debtors={stats.debtors} />
       </div>
@@ -755,6 +760,58 @@ function ProfitTable({ profit, hasCosts }) {
           </tbody>
         </table>
       </div>
+    </Card>
+  )
+}
+
+/** Lo que hay que hacer: vencidos primero, después la semana que viene. */
+function PendingReminders({ reminders }) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const daysUntil = (iso) => Math.round((new Date(iso + 'T00:00:00') - today) / 86400000)
+
+  const pending = reminders
+    .filter((r) => !r.done && daysUntil(r.due_on) <= 7)
+    .sort((a, b) => daysUntil(a.due_on) - daysUntil(b.due_on))
+    .slice(0, 8)
+
+  const whenLabel = (iso) => {
+    const d = daysUntil(iso)
+    if (d < -1) return `Atrasado ${Math.abs(d)} d`
+    if (d === -1) return 'Era ayer'
+    if (d === 0) return 'Hoy'
+    if (d === 1) return 'Mañana'
+    return `En ${d} d`
+  }
+
+  return (
+    <Card title="Pendientes" hint="Vencidos y de acá a una semana" delay={0.42}>
+      {pending.length === 0 ? (
+        <p className="py-8 text-center text-sm text-inkfaint">No tenés nada pendiente.</p>
+      ) : (
+        <ul className="divide-y divide-line/70">
+          {pending.map((r) => {
+            const late = daysUntil(r.due_on) < 0
+            return (
+              <li key={r.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                <div className="min-w-0">
+                  <p className="truncate font-medium text-ink">{r.title}</p>
+                  {r.suppliers?.name && (
+                    <p className="truncate text-xs text-inkfaint">{r.suppliers.name}</p>
+                  )}
+                </div>
+                <span
+                  className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    late ? 'bg-brick-50 text-brick-dark' : 'bg-awning-50 text-awning-dark'
+                  }`}
+                >
+                  {whenLabel(r.due_on)}
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </Card>
   )
 }

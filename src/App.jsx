@@ -1,6 +1,17 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { BarChart3, Boxes, Menu, Printer, ReceiptText, ScanLine, Wallet, X } from 'lucide-react'
+import {
+  BarChart3,
+  BellRing,
+  Boxes,
+  Menu,
+  Printer,
+  ReceiptText,
+  ScanLine,
+  Truck,
+  Wallet,
+  X,
+} from 'lucide-react'
 import { isSupabaseConfigured } from './lib/supabaseClient'
 import SetupNotice from './components/SetupNotice'
 import PrintHeader from './components/PrintHeader'
@@ -9,6 +20,8 @@ import POS from './pages/POS'
 import Stock from './pages/Stock'
 import Accounts from './pages/Accounts'
 import Expenses from './pages/Expenses'
+import Suppliers from './pages/Suppliers'
+import Reminders from './pages/Reminders'
 
 const TABS = [
   {
@@ -46,6 +59,24 @@ const TABS = [
     title: 'Cuentas corrientes',
     description: 'Saldos, cargos y pagos',
     printLabel: 'Imprimir resumen',
+  },
+  {
+    id: 'reminders',
+    label: 'Recordatorios',
+    icon: BellRing,
+    Page: Reminders,
+    title: 'Recordatorios',
+    description: 'Pedidos, pagos y vencimientos',
+    printLabel: 'Imprimir pendientes',
+  },
+  {
+    id: 'suppliers',
+    label: 'Proveedores',
+    icon: Truck,
+    Page: Suppliers,
+    title: 'Proveedores',
+    description: 'A quién le comprás y cuándo reparte',
+    printLabel: 'Imprimir listado',
   },
   {
     id: 'expenses',
@@ -124,7 +155,7 @@ export default function App() {
             <img
               src="/logo.png"
               alt="Despensa San Nicolás"
-              className="h-10 w-auto shrink-0 sm:h-12 lg:hidden"
+              className="h-14 w-auto shrink-0 sm:h-16 lg:hidden"
             />
 
             <div className="hidden min-w-0 lg:block">
@@ -187,7 +218,7 @@ function Sidebar({ tab, go, onClose, className = '' }) {
             alt=""
             width="528"
             height="420"
-            className="h-20 w-auto select-none"
+            className="h-32 w-auto select-none"
             draggable="false"
           />
           <span className="sr-only">Despensa San Nicolás</span>
