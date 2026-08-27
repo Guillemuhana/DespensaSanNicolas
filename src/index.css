@@ -18,6 +18,23 @@ body {
   color: #231F1B;
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* En iOS Safari, un input con letra menor a 16px hace que el navegador
+   zoomee solo al enfocarlo. En pantallas chicas los subimos a 16px. */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* El lector de código de barras escribe muy rápido: evitamos que el input
+   se achique con textos largos en pantallas angostas. */
+input {
+  min-width: 0;
 }
 
 ::selection {

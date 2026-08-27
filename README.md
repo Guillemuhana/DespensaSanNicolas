@@ -29,6 +29,12 @@ Desplegado con Vercel. Las mismas dos variables de entorno
 (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY) hay que cargarlas en
 Project Settings → Environment Variables de Vercel.
 
+## En el celular
+
+Todas las pantallas son responsive. En mobile la barra de pestañas pasa a
+abajo del logo, el ticket se ve completo arriba del botón "Cobrar" (que queda
+fijo al pie), y la lista de stock se muestra como tarjetas en vez de tabla.
+
 ## Pantallas
 
 - Facturación: escaneo/búsqueda de productos, ticket en vivo, cobro en

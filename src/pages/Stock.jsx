@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { fetchProducts, createProduct, updateProduct, deleteProduct } from '../lib/queries'
 
 const emptyForm = { name: '', barcode: '', sale_type: 'unit', price: '', stock: '', min_stock: '' }
@@ -9,6 +9,7 @@ export default function Stock() {
   const [editingId, setEditingId] = useState(null)
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState(null)
+  const formRef = useRef(null)
 
   useEffect(() => {
     load()
@@ -24,6 +25,9 @@ export default function Stock() {
 
   function startEdit(p) {
     setEditingId(p.id)
+    if (window.matchMedia('(max-width: 767px)').matches) {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
     setForm({
       name: p.name,
       barcode: p.barcode || '',
@@ -79,7 +83,7 @@ export default function Stock() {
   )
 
   return (
-    <div className="grid md:grid-cols-[1fr_320px] gap-6">
+    <div className="grid gap-4 md:gap-6 md:grid-cols-[1fr_320px]">
       <div>
         <input
           type="text"
@@ -95,7 +99,47 @@ export default function Stock() {
           </div>
         )}
 
-        <div className="bg-white border border-paper2 rounded-md overflow-hidden">
+        <ul className="md:hidden space-y-2">
+          {filtered.map((p) => {
+            const low = Number(p.stock) <= Number(p.min_stock)
+            return (
+              <li key={p.id} className="bg-white border border-paper2 rounded-md p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-ink font-medium break-words">{p.name}</p>
+                    <p className="text-inkfaint text-xs font-mono">{p.barcode || 'sin código'}</p>
+                  </div>
+                  <p className="font-mono tabular text-ink font-medium shrink-0">
+                    ${Number(p.price).toLocaleString('es-AR')}
+                    {p.sale_type === 'weight' ? ' /kg' : ''}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between gap-3 mt-2 pt-2 border-t border-paper2">
+                  <span className={`font-mono tabular text-sm ${low ? 'text-brick font-semibold' : 'text-inkfaint'}`}>
+                    {Number(p.stock).toLocaleString('es-AR', { maximumFractionDigits: 3 })}
+                    {p.sale_type === 'weight' ? ' kg' : ' un.'}
+                    {low ? ' · stock bajo' : ''}
+                  </span>
+                  <span className="flex gap-3 shrink-0">
+                    <button onClick={() => startEdit(p)} className="text-awning font-medium text-sm py-1">
+                      Editar
+                    </button>
+                    <button onClick={() => handleDelete(p.id)} className="text-brick font-medium text-sm py-1">
+                      Borrar
+                    </button>
+                  </span>
+                </div>
+              </li>
+            )
+          })}
+          {filtered.length === 0 && (
+            <li className="bg-white border border-paper2 rounded-md px-4 py-8 text-center text-inkfaint">
+              No hay productos que coincidan.
+            </li>
+          )}
+        </ul>
+
+        <div className="hidden md:block bg-white border border-paper2 rounded-md overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-paper2/60 text-inkfaint text-left">
               <tr>
@@ -114,11 +158,11 @@ export default function Stock() {
                       <p className="text-ink font-medium">{p.name}</p>
                       <p className="text-inkfaint text-xs font-mono">{p.barcode || 'sin código'}</p>
                     </td>
-                    <td className="px-4 py-2.5 font-mono tabular">
+                    <td className="px-4 py-2.5 font-mono tabular whitespace-nowrap">
                       ${Number(p.price).toLocaleString('es-AR')}
                       {p.sale_type === 'weight' ? ' /kg' : ''}
                     </td>
-                    <td className="px-4 py-2.5 font-mono tabular">
+                    <td className="px-4 py-2.5 font-mono tabular whitespace-nowrap">
                       <span className={low ? 'text-brick font-semibold' : ''}>
                         {Number(p.stock).toLocaleString('es-AR', { maximumFractionDigits: 3 })}
                         {p.sale_type === 'weight' ? ' kg' : ' un.'}
@@ -153,7 +197,7 @@ export default function Stock() {
         </div>
       </div>
 
-      <div className="bg-white border border-paper2 rounded-md p-5 h-fit">
+      <div ref={formRef} className="bg-white border border-paper2 rounded-md p-4 sm:p-5 h-fit scroll-mt-4">
         <h2 className="font-display text-lg font-semibold text-ink mb-4">
           {editingId ? 'Editar producto' : 'Nuevo producto'}
         </h2>

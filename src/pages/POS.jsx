@@ -151,8 +151,8 @@ export default function POS() {
     : []
 
   return (
-    <div className="grid md:grid-cols-[1fr_380px] gap-6 h-full">
-      <div className="flex flex-col gap-4">
+    <div className="grid gap-4 md:gap-6 md:grid-cols-[1fr_380px] md:grid-rows-[minmax(0,1fr)_auto]">
+      <div className="flex flex-col gap-4 md:col-start-1 md:row-start-1">
         <form onSubmit={handleScan}>
           <label className="block text-sm font-medium text-ink mb-1">
             Código de barras / buscar producto
@@ -163,7 +163,7 @@ export default function POS() {
             value={barcode}
             onChange={(e) => setBarcode(e.target.value)}
             placeholder="Escaneá o escribí y apretá Enter"
-            className="w-full text-xl font-mono border border-paper2 rounded-md px-4 py-4 focus:border-awning bg-white"
+            className="w-full text-lg sm:text-xl font-mono border border-paper2 rounded-md px-3 sm:px-4 py-3 sm:py-4 focus:border-awning bg-white"
             autoComplete="off"
           />
         </form>
@@ -200,10 +200,10 @@ export default function POS() {
                   else addUnitItem(p)
                   setBarcode('')
                 }}
-                className="w-full flex items-center justify-between px-4 py-3 hover:bg-paper2 text-left"
+                className="w-full flex items-center justify-between gap-3 px-4 py-3 hover:bg-paper2 text-left"
               >
-                <span className="text-ink font-medium">{p.name}</span>
-                <span className="font-mono tabular text-inkfaint text-sm">
+                <span className="text-ink font-medium min-w-0 truncate">{p.name}</span>
+                <span className="font-mono tabular text-inkfaint text-sm shrink-0">
                   ${Number(p.price).toLocaleString('es-AR')}
                   {p.sale_type === 'weight' ? ' /kg' : ''}
                 </span>
@@ -211,20 +211,20 @@ export default function POS() {
             ))}
           </div>
         )}
+      </div>
 
-        <div className="flex-1" />
+      <div className="min-h-[280px] md:min-h-[420px] md:h-full md:col-start-2 md:row-start-1 md:row-span-2">
+        <Receipt items={items} onRemove={removeItem} total={total} />
+      </div>
 
+      <div className="sticky bottom-0 -mx-4 px-4 pb-3 pt-2 bg-paper md:static md:mx-0 md:p-0 md:bg-transparent md:col-start-1 md:row-start-2">
         <button
           onClick={() => setShowPayment(true)}
           disabled={items.length === 0}
-          className="w-full py-5 rounded-md bg-mustard text-ink font-display text-2xl font-semibold hover:bg-mustard-dark disabled:opacity-30 disabled:cursor-not-allowed shadow-sm"
+          className="w-full py-4 sm:py-5 rounded-md bg-mustard text-ink font-display text-xl sm:text-2xl font-semibold hover:bg-mustard-dark disabled:opacity-30 disabled:cursor-not-allowed shadow-sm"
         >
           Cobrar · ${total.toLocaleString('es-AR', { maximumFractionDigits: 2 })}
         </button>
-      </div>
-
-      <div className="h-full min-h-[400px]">
-        <Receipt items={items} onRemove={removeItem} total={total} />
       </div>
 
       {pendingWeightProduct && (

@@ -78,7 +78,7 @@ export default function Accounts() {
   const totalDebt = Object.values(balances).reduce((s, v) => s + Math.max(v, 0), 0)
 
   return (
-    <div className="grid md:grid-cols-[320px_1fr] gap-6">
+    <div className="grid gap-4 md:gap-6 md:grid-cols-[320px_1fr]">
       <div>
         <div className="bg-awning text-white rounded-md p-4 mb-4">
           <p className="text-xs uppercase tracking-widest text-white/70 mb-1">Total a cobrar</p>
@@ -113,11 +113,11 @@ export default function Accounts() {
                   selected?.id === c.id ? 'bg-mustard-light/40' : 'hover:bg-paper2'
                 }`}
               >
-                <span className="text-ink font-medium">{c.name}</span>
+                <span className="text-ink font-medium min-w-0 truncate pr-3">{c.name}</span>
                 <span
                   className={`font-mono tabular text-sm font-semibold ${
                     bal > 0 ? 'text-brick' : 'text-inkfaint'
-                  }`}
+                  } shrink-0`}
                 >
                   ${bal.toLocaleString('es-AR', { maximumFractionDigits: 2 })}
                 </span>
@@ -132,13 +132,15 @@ export default function Accounts() {
 
       <div>
         {!selected ? (
-          <div className="h-full flex items-center justify-center text-inkfaint bg-white border border-paper2 rounded-md min-h-[300px]">
+          <div className="h-full flex items-center justify-center text-center px-4 text-inkfaint bg-white border border-paper2 rounded-md min-h-[180px] md:min-h-[300px]">
             Elegí un cliente para ver su cuenta.
           </div>
         ) : (
-          <div className="bg-white border border-paper2 rounded-md p-5">
-            <div className="flex items-baseline justify-between mb-5">
-              <h2 className="font-display text-xl font-semibold text-ink">{selected.name}</h2>
+          <div className="bg-white border border-paper2 rounded-md p-4 sm:p-5">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 mb-5">
+              <h2 className="font-display text-xl font-semibold text-ink break-words min-w-0">
+                {selected.name}
+              </h2>
               <span
                 className={`font-mono tabular text-2xl font-semibold ${
                   (balances[selected.id] || 0) > 0 ? 'text-brick' : 'text-awning'
@@ -148,7 +150,7 @@ export default function Accounts() {
               </span>
             </div>
 
-            <form onSubmit={handleRegisterPayment} className="flex gap-2 mb-6">
+            <form onSubmit={handleRegisterPayment} className="flex flex-col sm:flex-row gap-2 mb-6">
               <input
                 type="number"
                 step="0.01"
@@ -156,11 +158,11 @@ export default function Accounts() {
                 value={paymentAmount}
                 onChange={(e) => setPaymentAmount(e.target.value)}
                 placeholder="Monto que paga"
-                className="flex-1 border border-paper2 rounded-md px-3 py-2 font-mono focus:border-awning"
+                className="flex-1 min-w-0 border border-paper2 rounded-md px-3 py-2 font-mono focus:border-awning"
               />
               <button
                 type="submit"
-                className="px-4 py-2 rounded-md bg-mustard text-ink font-medium hover:bg-mustard-dark"
+                className="px-4 py-2.5 sm:py-2 rounded-md bg-mustard text-ink font-medium hover:bg-mustard-dark whitespace-nowrap"
               >
                 Registrar pago
               </button>
@@ -171,8 +173,8 @@ export default function Accounts() {
             </p>
             <ul className="divide-y divide-paper2">
               {movements.map((m) => (
-                <li key={m.id} className="py-2.5 flex items-center justify-between text-sm">
-                  <div>
+                <li key={m.id} className="py-2.5 flex items-center justify-between gap-3 text-sm">
+                  <div className="min-w-0">
                     <p className="text-ink">{m.note || (m.type === 'charge' ? 'Cargo' : 'Pago')}</p>
                     <p className="text-inkfaint text-xs">
                       {new Date(m.created_at).toLocaleString('es-AR')}
@@ -181,7 +183,7 @@ export default function Accounts() {
                   <span
                     className={`font-mono tabular font-medium ${
                       m.type === 'charge' ? 'text-brick' : 'text-awning'
-                    }`}
+                    } shrink-0 whitespace-nowrap`}
                   >
                     {m.type === 'charge' ? '+' : '−'}$
                     {Number(m.amount).toLocaleString('es-AR', { maximumFractionDigits: 2 })}

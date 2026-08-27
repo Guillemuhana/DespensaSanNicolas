@@ -6,9 +6,9 @@ import Stock from './pages/Stock'
 import Accounts from './pages/Accounts'
 
 const TABS = [
-  { id: 'pos', label: 'Facturación' },
-  { id: 'stock', label: 'Stock' },
-  { id: 'accounts', label: 'Cuentas corrientes' },
+  { id: 'pos', label: 'Facturación', short: 'Facturar' },
+  { id: 'stock', label: 'Stock', short: 'Stock' },
+  { id: 'accounts', label: 'Cuentas corrientes', short: 'Cuentas' },
 ]
 
 export default function App() {
@@ -19,10 +19,14 @@ export default function App() {
   return (
     <div className="min-h-screen bg-paper flex flex-col">
       <header className="border-b border-paper2 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.jpeg" alt="Despensa San Nicolás" className="h-11 w-auto" />
-            <h1 className="font-display text-lg font-bold text-ink leading-tight hidden sm:block">
+            <img
+              src="/logo.jpeg"
+              alt="Despensa San Nicolás"
+              className="h-9 sm:h-11 w-auto"
+            />
+            <h1 className="font-display text-lg font-bold text-ink leading-tight hidden lg:block">
               Despensa San Nicolás
             </h1>
           </div>
@@ -31,20 +35,21 @@ export default function App() {
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`flex-1 sm:flex-none px-2 sm:px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
                   tab === t.id
                     ? 'bg-awning text-white'
                     : 'text-inkfaint hover:bg-paper2'
                 }`}
               >
-                {t.label}
+                <span className="sm:hidden">{t.short}</span>
+                <span className="hidden sm:inline">{t.label}</span>
               </button>
             ))}
           </nav>
         </div>
       </header>
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-4 sm:py-6">
         {tab === 'pos' && <POS />}
         {tab === 'stock' && <Stock />}
         {tab === 'accounts' && <Accounts />}

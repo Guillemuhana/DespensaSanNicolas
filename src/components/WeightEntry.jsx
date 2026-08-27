@@ -19,10 +19,10 @@ export default function WeightEntry({ product, onConfirm, onCancel }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-ink/40 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 z-50 bg-ink/40 overflow-y-auto flex items-end sm:items-center justify-center p-3 sm:p-4">
       <form
         onSubmit={handleSubmit}
-        className="bg-white rounded-lg shadow-lg w-full max-w-sm p-6 border border-paper2"
+        className="bg-white rounded-lg shadow-lg w-full max-w-sm p-5 sm:p-6 border border-paper2 my-auto"
       >
         <p className="font-mono text-xs tracking-widest text-mustard-dark uppercase mb-1">
           Producto por peso

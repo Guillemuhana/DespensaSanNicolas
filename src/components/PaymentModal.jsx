@@ -35,8 +35,8 @@ export default function PaymentModal({ total, customers, onConfirm, onCancel, on
   }
 
   return (
-    <div className="fixed inset-0 bg-ink/40 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 border border-paper2">
+    <div className="fixed inset-0 z-50 bg-ink/40 overflow-y-auto flex items-end sm:items-center justify-center p-3 sm:p-4">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-5 sm:p-6 border border-paper2 my-auto">
         <p className="font-mono text-xs tracking-widest text-mustard-dark uppercase mb-1">Cobrar</p>
         <div className="flex items-baseline justify-between mb-5">
           <h2 className="font-display text-xl font-semibold text-ink">Total</h2>
