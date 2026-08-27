@@ -143,10 +143,18 @@ export default function Dashboard() {
     const revenue = sales.reduce((s, v) => s + Number(v.total), 0)
     const avgTicket = sales.length ? revenue / sales.length : 0
 
-    const cash = sales
+    // `sales` trae el año entero (lo necesita la tabla de ganancias), pero los
+    // gráficos de abajo hablan de los últimos 35 días: hay que recortar.
+    const windowStart = new Date()
+    windowStart.setDate(windowStart.getDate() - DAYS_WINDOW)
+    windowStart.setHours(0, 0, 0, 0)
+    const windowSales = sales.filter((v) => new Date(v.created_at) >= windowStart)
+
+    const windowRevenue = windowSales.reduce((s, v) => s + Number(v.total), 0)
+    const cash = windowSales
       .filter((s) => s.payment_method === 'cash')
       .reduce((s, v) => s + Number(v.total), 0)
-    const account = revenue - cash
+    const account = windowRevenue - cash
 
     // Top productos por facturación de los últimos 35 días.
     const byProduct = new Map()
@@ -163,7 +171,7 @@ export default function Dashboard() {
 
     // Ventas por hora, para saber cuándo conviene tener a alguien más en el mostrador.
     const hours = Array.from({ length: 15 }, (_, i) => ({ hour: i + 7, total: 0 }))
-    for (const s of sales) {
+    for (const s of windowSales) {
       const h = new Date(s.created_at).getHours()
       const slot = hours.find((x) => x.hour === h)
       if (slot) slot.total += Number(s.total)
@@ -258,7 +266,7 @@ export default function Dashboard() {
         <StatTile
           label="Ticket promedio"
           value={money(stats.avgTicket)}
-          sub={`sobre ${sales.length} ventas`}
+          sub={`sobre ${sales.length} ventas del año`}
           delay={0.1}
         />
         <StatTile
