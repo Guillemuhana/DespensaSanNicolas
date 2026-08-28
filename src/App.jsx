@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import {
   Bell,
@@ -238,6 +238,26 @@ export default function App() {
 }
 
 function Sidebar({ tab, go, collapsed, onToggle, onClose, layoutId, className = '' }) {
+  const [hovering, setHovering] = useState(false)
+  const hoverTimer = useRef(null)
+  // Plegada pero con el mouse encima se despliega igual, flotando por arriba
+  // del contenido: no empuja la página, así nada se mueve de lugar.
+  const expanded = !collapsed || hovering
+
+  useEffect(() => () => clearTimeout(hoverTimer.current), [])
+
+  function handleEnter() {
+    if (!collapsed) return
+    clearTimeout(hoverTimer.current)
+    // Un respiro corto para que no se abra sola cuando el puntero apenas pasa.
+    hoverTimer.current = setTimeout(() => setHovering(true), 120)
+  }
+
+  function handleLeave() {
+    clearTimeout(hoverTimer.current)
+    setHovering(false)
+  }
+
   const raw = new Date().toLocaleDateString('es-AR', {
     weekday: 'long',
     day: 'numeric',
@@ -248,13 +268,15 @@ function Sidebar({ tab, go, collapsed, onToggle, onClose, layoutId, className = 
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-50 flex-col border-r border-line bg-surface transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-        collapsed ? 'w-[5rem]' : 'w-[17rem]'
-      } ${className}`}
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+      className={`fixed inset-y-0 left-0 z-50 flex-col border-r border-line bg-surface transition-[width,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        expanded ? 'w-[17rem]' : 'w-[5rem]'
+      } ${hovering ? 'shadow-pop' : ''} ${className}`}
     >
       <div
         className={`flex items-center gap-2 pb-4 pt-5 ${
-          collapsed ? 'flex-col px-2' : 'justify-between px-5 pt-6'
+          expanded ? 'justify-between px-5 pt-6' : 'flex-col px-2'
         }`}
       >
         <h1 className="flex min-w-0 items-center">
@@ -264,7 +286,7 @@ function Sidebar({ tab, go, collapsed, onToggle, onClose, layoutId, className = 
             width="528"
             height="420"
             className={`w-auto select-none transition-all duration-300 ${
-              collapsed ? 'h-11' : 'h-28'
+              expanded ? 'h-28' : 'h-11'
             }`}
             draggable="false"
           />
@@ -274,8 +296,8 @@ function Sidebar({ tab, go, collapsed, onToggle, onClose, layoutId, className = 
         {onToggle && (
           <button
             onClick={onToggle}
-            aria-label={collapsed ? 'Desplegar menú' : 'Plegar menú'}
-            title={collapsed ? 'Desplegar menú' : 'Plegar menú'}
+            aria-label={collapsed ? 'Fijar el menú abierto' : 'Plegar el menú'}
+            title={collapsed ? 'Fijar el menú abierto' : 'Plegar el menú'}
             className="shrink-0 rounded-lg p-2 text-inkfaint transition-colors hover:bg-paper2 hover:text-ink"
           >
             {collapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}
@@ -293,8 +315,14 @@ function Sidebar({ tab, go, collapsed, onToggle, onClose, layoutId, className = 
         )}
       </div>
 
-      <nav className={`flex-1 space-y-1 ${collapsed ? 'px-2.5' : 'px-3'}`}>
-        {!collapsed && <p className="eyebrow px-2 pb-2 pt-3 text-inkfaint/70">Menú</p>}
+      <nav className={`flex-1 space-y-1 ${expanded ? 'px-3' : 'px-2.5'}`}>
+        <p
+          className={`eyebrow px-2 pb-2 pt-3 text-inkfaint/70 transition-opacity duration-200 ${
+            expanded ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
+          Menú
+        </p>
         {TABS.map((t) => {
           const active = tab === t.id
           const Icon = t.icon
@@ -303,9 +331,9 @@ function Sidebar({ tab, go, collapsed, onToggle, onClose, layoutId, className = 
               key={t.id}
               onClick={() => go(t.id)}
               aria-current={active ? 'page' : undefined}
-              title={collapsed ? t.label : undefined}
+              title={expanded ? undefined : t.label}
               className={`group relative flex w-full items-center rounded-xl text-left text-sm font-semibold transition-colors ${
-                collapsed ? 'justify-center px-0 py-3' : 'gap-3 px-3 py-2.5'
+                expanded ? 'gap-3 px-3 py-2.5' : 'justify-center px-0 py-3'
               } ${active ? 'text-awning-dark' : 'text-inkfaint hover:bg-paper2/70 hover:text-ink'}`}
             >
               {active && (
@@ -316,27 +344,31 @@ function Sidebar({ tab, go, collapsed, onToggle, onClose, layoutId, className = 
                 />
               )}
               <Icon size={19} strokeWidth={2.2} className="relative shrink-0" />
-              {!collapsed && <span className="relative truncate">{t.label}</span>}
-
-              {/* Plegado, el nombre aparece al pasar el mouse. */}
-              {collapsed && (
-                <span className="pointer-events-none absolute left-full z-50 ml-3 whitespace-nowrap rounded-lg bg-ink px-2.5 py-1.5 text-xs font-semibold text-white opacity-0 shadow-pop transition-opacity duration-150 group-hover:opacity-100">
+              {expanded && (
+                <motion.span
+                  initial={{ opacity: 0, x: -4 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
+                  className="relative truncate"
+                >
                   {t.label}
-                </span>
+                </motion.span>
               )}
             </button>
           )
         })}
       </nav>
 
-      <div className={`border-t border-line py-4 ${collapsed ? 'px-2 text-center' : 'px-5'}`}>
-        {collapsed ? (
-          <p className="font-display text-sm font-semibold text-ink">SN</p>
-        ) : (
+      <div className={`border-t border-line py-4 ${expanded ? 'px-5' : 'px-2 text-center'}`}>
+        {expanded ? (
           <>
-            <p className="font-display text-sm font-semibold text-ink">Despensa San Nicolás</p>
-            <p className="mt-0.5 text-xs text-inkfaint">{today}</p>
+            <p className="truncate font-display text-sm font-semibold text-ink">
+              Despensa San Nicolás
+            </p>
+            <p className="mt-0.5 truncate text-xs text-inkfaint">{today}</p>
           </>
+        ) : (
+          <p className="font-display text-sm font-semibold text-ink">SN</p>
         )}
       </div>
     </aside>
