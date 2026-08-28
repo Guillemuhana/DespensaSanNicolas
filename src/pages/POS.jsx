@@ -1,17 +1,19 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   fetchProducts,
   findProductByBarcode,
   fetchCustomers,
   createSale,
   createCustomer,
+  createProduct,
 } from '../lib/queries'
 import Receipt from '../components/Receipt'
 import WeightEntry from '../components/WeightEntry'
 import PaymentModal from '../components/PaymentModal'
+import QuickProductModal from '../components/QuickProductModal'
 import TicketPrint from '../components/TicketPrint'
 import { printTicket } from '../lib/print'
-import { Printer } from 'lucide-react'
+import { ChevronDown, Plus, Printer, ScanBarcode } from 'lucide-react'
 
 export default function POS() {
   const [barcode, setBarcode] = useState('')
@@ -22,6 +24,11 @@ export default function POS() {
   const [showPayment, setShowPayment] = useState(false)
   const [status, setStatus] = useState(null) // { type: 'error'|'success', text }
   const [lastSale, setLastSale] = useState(null)
+  // Código escaneado que no está en la base: se ofrece darlo de alta al toque.
+  const [unknownCode, setUnknownCode] = useState(null)
+  const [quickProduct, setQuickProduct] = useState(null) // { barcode } | null
+  // El catálogo completo arranca plegado: en el mostrador manda el escáner.
+  const [showCatalog, setShowCatalog] = useState(false)
   const inputRef = useRef(null)
 
   useEffect(() => {
@@ -89,15 +96,44 @@ export default function POS() {
     setItems((prev) => prev.filter((_, i) => i !== idx))
   }
 
+  // +/- en el ticket: llegar a cero saca la línea.
+  function changeQty(idx, delta) {
+    setItems((prev) => {
+      const it = prev[idx]
+      if (!it) return prev
+      const next = it.quantity + delta
+      if (next <= 0) return prev.filter((_, i) => i !== idx)
+      return prev.map((row, i) =>
+        i === idx ? { ...row, quantity: next, subtotal: next * row.price } : row
+      )
+    })
+  }
+
   async function handleScan(e) {
     e.preventDefault()
     const code = barcode.trim()
     if (!code) return
     setStatus(null)
+    setUnknownCode(null)
     try {
       let product = products.find((p) => p.barcode === code)
       if (!product) product = await findProductByBarcode(code)
       if (!product) {
+        // Enter sobre un nombre escrito a mano: si hay una sola coincidencia la
+        // cargamos derecho, y si hay varias abrimos la lista para elegir.
+        const matches = matchProducts(products, code)
+        if (matches.length === 1) {
+          pickProduct(matches[0])
+          return
+        }
+        if (matches.length > 1) {
+          setStatus({
+            type: 'success',
+            text: `Hay ${matches.length} productos que coinciden: tocá el que va.`,
+          })
+          return
+        }
+        setUnknownCode(code)
         setStatus({ type: 'error', text: `No hay ningún producto con el código "${code}".` })
         setBarcode('')
         return
@@ -115,6 +151,23 @@ export default function POS() {
       setStatus({ type: 'error', text: err.message })
     }
     setBarcode('')
+  }
+
+  // Alta al vuelo: el producto queda cargado y entra al ticket sin salir de acá.
+  async function handleQuickCreate(payload) {
+    const product = await createProduct(payload)
+    setProducts((prev) => [...prev, product].sort((a, b) => a.name.localeCompare(b.name, 'es')))
+    setQuickProduct(null)
+    setUnknownCode(null)
+    setBarcode('')
+    if (product.sale_type === 'weight') {
+      setPendingWeightProduct(product)
+      setStatus({ type: 'success', text: `"${product.name}" quedó cargado.` })
+    } else {
+      addUnitItem(product)
+      setStatus({ type: 'success', text: `"${product.name}" quedó cargado y va en el ticket.` })
+    }
+    inputRef.current?.focus()
   }
 
   async function handleConfirmPayment(payment) {
@@ -153,16 +206,17 @@ export default function POS() {
     }
   }
 
-  const query = barcode.trim().toLowerCase()
-  const shownProducts = query
-    ? products.filter(
-        (p) => p.name.toLowerCase().includes(query) || p.barcode?.includes(barcode.trim())
-      )
-    : products
+  const query = barcode.trim()
+  const results = useMemo(() => matchProducts(products, query), [products, query])
+  // Mientras se escribe se ven los resultados; con el campo vacío el catálogo
+  // aparece sólo si lo despliegan.
+  const listOpen = query.length > 0 || showCatalog
+  const shownProducts = query ? results : products
 
-  // Tocar una tarjeta hace lo mismo que escanear el código de ese producto.
+  // Tocar una fila hace lo mismo que escanear el código de ese producto.
   function pickProduct(p) {
     setStatus(null)
+    setUnknownCode(null)
     if (p.sale_type === 'weight') {
       setPendingWeightProduct(p)
     } else if (Number(p.stock) <= 0) {
@@ -179,11 +233,21 @@ export default function POS() {
     // cobrar queda fijo al pie de la pantalla (por eso el padding de abajo).
     // En escritorio son dos columnas y el ticket queda pegado al scroll.
     <div className="grid gap-4 pb-24 lg:grid-cols-[1fr_400px] lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-6 lg:pb-0">
-      <div className="order-1 flex flex-col gap-4 lg:col-start-1 lg:row-start-1">
+      <div className="order-1 flex flex-col gap-3 lg:col-start-1 lg:row-start-1">
         <form onSubmit={handleScan}>
-          <label htmlFor="scan" className="eyebrow text-inkfaint block mb-2">
-            Código de barras
-          </label>
+          <div className="mb-2 flex items-end justify-between gap-3">
+            <label htmlFor="scan" className="eyebrow text-inkfaint block">
+              Escanear o buscar
+            </label>
+            <button
+              type="button"
+              onClick={() => setQuickProduct({ barcode: '' })}
+              className="flex items-center gap-1.5 text-xs font-semibold text-inkfaint transition-colors hover:text-awning"
+            >
+              <Plus size={14} strokeWidth={2.6} />
+              Producto nuevo
+            </button>
+          </div>
           <div className="relative">
             <span
               aria-hidden="true"
@@ -207,8 +271,11 @@ export default function POS() {
               ref={inputRef}
               type="text"
               value={barcode}
-              onChange={(e) => setBarcode(e.target.value)}
-              placeholder="Escaneá o buscá por nombre"
+              onChange={(e) => {
+                setBarcode(e.target.value)
+                setUnknownCode(null)
+              }}
+              placeholder="Pasá el código o escribí el nombre"
               className="w-full rounded-xl border border-line bg-surface py-3.5 pl-12 pr-4 font-mono text-lg shadow-card transition-shadow placeholder:font-body placeholder:text-inkfaint/50 focus:border-awning focus:shadow-lift focus:outline-none sm:py-4 sm:text-xl"
               autoComplete="off"
             />
@@ -224,7 +291,16 @@ export default function POS() {
                 : 'border-awning-100 bg-awning-50 text-awning-dark'
             }`}
           >
-            {status.text}
+            <p>{status.text}</p>
+            {unknownCode && (
+              <button
+                onClick={() => setQuickProduct({ barcode: unknownCode })}
+                className="mt-2 flex items-center gap-1.5 rounded-lg bg-brick px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-brick-dark"
+              >
+                <ScanBarcode size={14} strokeWidth={2.4} />
+                Cargar producto con este código
+              </button>
+            )}
           </div>
         )}
 
@@ -251,45 +327,66 @@ export default function POS() {
             </button>
           </div>
         )}
-
       </div>
 
-      {/* Con la búsqueda vacía mostramos igual el catálogo entero: en un
-          mostrador conviene poder tocar el producto sin escribir nada. */}
+      {/* El catálogo va plegado y en filas finas: lo que manda es el ticket.
+          Sirve sobre todo para lo que no tiene código de barras. */}
       <div className="order-3 min-h-0 lg:order-none lg:col-start-1 lg:row-start-2">
-        <div>
-          <p className="eyebrow mb-2 text-inkfaint">
-            {query ? 'Resultados' : 'Productos'}
+        <div className="flex items-center justify-between gap-3">
+          <p className="eyebrow text-inkfaint">
+            {query ? `Resultados (${results.length})` : 'Productos'}
           </p>
-          {shownProducts.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-line bg-surface/60 px-4 py-10 text-center text-sm text-inkfaint">
-              {query
-                ? 'Ningún producto coincide con la búsqueda.'
-                : 'Todavía no hay productos cargados. Agregalos desde la pestaña Stock.'}
-            </p>
-          ) : (
-            <ul className="grid grid-cols-2 gap-2.5 xl:grid-cols-3">
-              {shownProducts.map((p) => {
-                const out = p.sale_type === 'unit' && Number(p.stock) <= 0
-                return (
-                  <li key={p.id}>
-                    <button
-                      onClick={() => pickProduct(p)}
-                      disabled={out}
-                      className="h-full w-full rounded-xl border border-line bg-surface p-3 text-left shadow-card transition-all duration-150 hover:-translate-y-0.5 hover:border-awning-200 hover:shadow-lift active:translate-y-0 disabled:pointer-events-none disabled:opacity-45"
-                    >
-                      <p className="line-clamp-2 min-h-[2.6em] font-medium leading-snug text-ink">
-                        {p.name}
-                      </p>
-                      <div className="mt-2 flex items-end justify-between gap-2">
-                        <span className="font-mono tabular font-semibold text-ink">
+          {!query && products.length > 0 && (
+            <button
+              onClick={() => setShowCatalog((v) => !v)}
+              aria-expanded={showCatalog}
+              className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-inkfaint shadow-card transition-colors hover:border-awning hover:text-awning"
+            >
+              {showCatalog ? 'Ocultar' : `Ver los ${products.length}`}
+              <ChevronDown
+                size={14}
+                strokeWidth={2.6}
+                className={`transition-transform ${showCatalog ? 'rotate-180' : ''}`}
+              />
+            </button>
+          )}
+        </div>
+
+        {listOpen && (
+          <div className="mt-2">
+            {shownProducts.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-line bg-surface/60 px-4 py-8 text-center text-sm text-inkfaint">
+                {query
+                  ? 'Ningún producto coincide con la búsqueda.'
+                  : 'Todavía no hay productos cargados. Agregalos desde la pestaña Stock.'}
+              </p>
+            ) : (
+              <ul className="scroll-soft max-h-[21rem] divide-y divide-line/70 overflow-y-auto rounded-xl border border-line bg-surface shadow-card lg:max-h-[calc(100vh-23rem)]">
+                {shownProducts.map((p) => {
+                  const out = p.sale_type === 'unit' && Number(p.stock) <= 0
+                  return (
+                    <li key={p.id}>
+                      <button
+                        onClick={() => pickProduct(p)}
+                        disabled={out}
+                        className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-awning-50/60 disabled:pointer-events-none disabled:opacity-45"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium leading-tight text-ink">
+                            {p.name}
+                          </span>
+                          <span className="block truncate font-mono text-[11px] text-inkfaint">
+                            {p.barcode || 'sin código'}
+                          </span>
+                        </span>
+                        <span className="shrink-0 font-mono tabular text-sm font-semibold text-ink">
                           ${Number(p.price).toLocaleString('es-AR')}
                           {p.sale_type === 'weight' && (
-                            <span className="text-xs font-normal text-inkfaint"> /kg</span>
+                            <span className="text-[11px] font-normal text-inkfaint">/kg</span>
                           )}
                         </span>
                         <span
-                          className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                          className={`w-[4.5rem] shrink-0 rounded-full px-2 py-0.5 text-center font-mono text-[11px] font-semibold ${
                             out
                               ? 'bg-brick-50 text-brick-dark'
                               : p.sale_type === 'weight'
@@ -298,25 +395,25 @@ export default function POS() {
                           }`}
                         >
                           {out
-                            ? 'sin stock'
+                            ? 'sin st.'
                             : p.sale_type === 'weight'
-                              ? 'por peso'
+                              ? 'por kg'
                               : `${Number(p.stock).toLocaleString('es-AR')} un.`}
                         </span>
-                      </div>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </div>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="order-2 lg:order-none lg:col-start-2 lg:row-start-1 lg:row-span-2">
         <div className="flex flex-col gap-3 lg:sticky lg:top-28 lg:max-h-[calc(100vh-9rem)]">
-          <div className="min-h-[280px] lg:min-h-0 lg:flex-1 lg:overflow-hidden">
-            <Receipt items={items} onRemove={removeItem} total={total} />
+          <div className="min-h-[320px] lg:min-h-0 lg:flex-1 lg:overflow-hidden">
+            <Receipt items={items} onRemove={removeItem} onChangeQty={changeQty} total={total} />
           </div>
           {/* Fijo al pie en el teléfono; parte de la columna en escritorio. */}
           <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-sm lg:static lg:shrink-0 lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
@@ -344,6 +441,14 @@ export default function POS() {
 
       <TicketPrint sale={lastSale} />
 
+      {quickProduct && (
+        <QuickProductModal
+          barcode={quickProduct.barcode}
+          onCreate={handleQuickCreate}
+          onCancel={() => setQuickProduct(null)}
+        />
+      )}
+
       {showPayment && (
         <PaymentModal
           total={total}
@@ -354,5 +459,13 @@ export default function POS() {
         />
       )}
     </div>
+  )
+}
+
+function matchProducts(products, query) {
+  const q = query.trim().toLowerCase()
+  if (!q) return products
+  return products.filter(
+    (p) => p.name.toLowerCase().includes(q) || p.barcode?.includes(query.trim())
   )
 }

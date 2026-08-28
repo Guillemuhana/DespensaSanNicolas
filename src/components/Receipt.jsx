@@ -1,5 +1,8 @@
-export default function Receipt({ items, onRemove, total }) {
+import { Minus, Plus, X } from 'lucide-react'
+
+export default function Receipt({ items, onRemove, onChangeQty, total }) {
   const count = items.length
+  const units = items.reduce((n, it) => n + (it.saleType === 'unit' ? it.quantity : 1), 0)
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-lift">
@@ -7,7 +10,7 @@ export default function Receipt({ items, onRemove, total }) {
         <p className="eyebrow text-inkfaint">Ticket actual</p>
         {count > 0 && (
           <span className="rounded-full bg-paper2 px-2.5 py-0.5 font-mono text-[11px] font-semibold text-inkfaint">
-            {count} {count === 1 ? 'ítem' : 'ítems'}
+            {units} {units === 1 ? 'ítem' : 'ítems'}
           </span>
         )}
       </div>
@@ -32,41 +35,56 @@ export default function Receipt({ items, onRemove, total }) {
               </svg>
             </span>
             <p className="max-w-[22ch] text-sm text-inkfaint">
-              Escaneá un código o tocá un producto para empezar.
+              Escaneá un código o buscá el producto por nombre.
             </p>
           </div>
         ) : (
           <ul className="divide-y divide-line/70">
             {items.map((it, idx) => (
-              <li key={idx} className="animate-rise flex items-start justify-between gap-3 py-3">
+              <li key={idx} className="animate-rise flex items-center justify-between gap-3 py-2.5">
                 <div className="min-w-0">
-                  <p className="truncate font-medium text-ink">{it.name}</p>
+                  <p className="truncate font-medium leading-snug text-ink">{it.name}</p>
                   <p className="font-mono tabular text-xs text-inkfaint">
                     {it.saleType === 'weight'
                       ? `${it.quantity.toLocaleString('es-AR', { maximumFractionDigits: 3 })} kg × $${it.price.toLocaleString('es-AR')}`
-                      : `${it.quantity} × $${it.price.toLocaleString('es-AR')}`}
+                      : `$${it.price.toLocaleString('es-AR')} c/u`}
                   </p>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <span className="font-mono tabular font-semibold text-ink">
+
+                <div className="flex shrink-0 items-center gap-2.5">
+                  {/* Los de peso se cargan por importe: no tienen +/-. */}
+                  {it.saleType === 'unit' && onChangeQty && (
+                    <div className="flex items-center gap-0.5 rounded-lg bg-paper2 p-0.5">
+                      <button
+                        onClick={() => onChangeQty(idx, -1)}
+                        aria-label={`Quitar una unidad de ${it.name}`}
+                        className="flex h-7 w-7 items-center justify-center rounded-md text-inkfaint transition-colors hover:bg-surface hover:text-ink"
+                      >
+                        <Minus size={14} strokeWidth={2.6} />
+                      </button>
+                      <span className="w-6 text-center font-mono tabular text-sm font-semibold text-ink">
+                        {it.quantity}
+                      </span>
+                      <button
+                        onClick={() => onChangeQty(idx, 1)}
+                        aria-label={`Agregar una unidad de ${it.name}`}
+                        className="flex h-7 w-7 items-center justify-center rounded-md text-inkfaint transition-colors hover:bg-surface hover:text-ink"
+                      >
+                        <Plus size={14} strokeWidth={2.6} />
+                      </button>
+                    </div>
+                  )}
+
+                  <span className="w-[5.5rem] text-right font-mono tabular font-semibold text-ink">
                     ${it.subtotal.toLocaleString('es-AR', { maximumFractionDigits: 2 })}
                   </span>
+
                   <button
                     onClick={() => onRemove(idx)}
                     aria-label={`Quitar ${it.name}`}
                     className="flex h-7 w-7 items-center justify-center rounded-full text-inkfaint transition-colors hover:bg-brick-50 hover:text-brick"
                   >
-                    <svg
-                      width="15"
-                      height="15"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                    >
-                      <path d="M6 6l12 12M18 6L6 18" />
-                    </svg>
+                    <X size={15} strokeWidth={2.4} />
                   </button>
                 </div>
               </li>

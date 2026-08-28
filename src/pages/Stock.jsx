@@ -8,6 +8,7 @@ import {
   schema,
 } from '../lib/queries'
 import RestockModal from '../components/RestockModal'
+import { ScanBarcode } from 'lucide-react'
 
 const emptyForm = {
   name: '',
@@ -32,6 +33,7 @@ export default function Stock() {
   const [suppliers, setSuppliers] = useState([])
   const [restocking, setRestocking] = useState(null)
   const formRef = useRef(null)
+  const barcodeRef = useRef(null)
 
   useEffect(() => {
     load()
@@ -81,9 +83,33 @@ export default function Stock() {
     setForm(emptyForm)
   }
 
+  // Alta nueva: el foco arranca en el código para pasarle el lector de una.
+  function startNew() {
+    resetForm()
+    setStatus(null)
+    if (window.matchMedia('(max-width: 767px)').matches) {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    setTimeout(() => barcodeRef.current?.focus(), 60)
+  }
+
+  // Código interno para lo que no viene con código de barras impreso (sueltos,
+  // fraccionado, verdulería): así todo producto se puede buscar por código.
+  function generateInternalCode() {
+    const used = products
+      .map((p) => Number(p.barcode?.match(/^INT-(\d+)$/)?.[1]))
+      .filter((n) => Number.isFinite(n))
+    const next = (used.length > 0 ? Math.max(...used) : 0) + 1
+    setForm((f) => ({ ...f, barcode: `INT-${String(next).padStart(4, '0')}` }))
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setStatus(null)
+    if (duplicate) {
+      setStatus({ type: 'error', text: `Ese código ya lo usa "${duplicate.name}".` })
+      return
+    }
     const payload = {
       name: form.name.trim(),
       barcode: form.barcode.trim() || null,
@@ -120,6 +146,13 @@ export default function Stock() {
     (p) => p.name.toLowerCase().includes(search.toLowerCase()) || p.barcode?.includes(search)
   )
   const lowCount = products.filter((p) => Number(p.stock) <= Number(p.min_stock)).length
+  const noCodeCount = products.filter((p) => !p.barcode).length
+
+  // Dos productos con el mismo código romperían el escaneo: se avisa antes.
+  const barcodeValue = form.barcode.trim()
+  const duplicate = barcodeValue
+    ? products.find((p) => p.barcode === barcodeValue && p.id !== editingId)
+    : null
 
   // Margen en vivo mientras se carga el producto.
   const priceNum = Number(form.price)
@@ -164,6 +197,18 @@ export default function Stock() {
               {lowCount} con stock bajo
             </span>
           )}
+          {noCodeCount > 0 && (
+            <span className="whitespace-nowrap rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-inkfaint">
+              {noCodeCount} sin código
+            </span>
+          )}
+          <button
+            onClick={startNew}
+            className="flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-awning px-3 py-2 text-sm font-semibold text-white shadow-card transition-colors hover:bg-awning-dark md:hidden"
+          >
+            <ScanBarcode size={16} strokeWidth={2.4} />
+            Cargar producto
+          </button>
         </div>
 
         {status && (
@@ -313,9 +358,19 @@ export default function Stock() {
         ref={formRef}
         className="h-fit scroll-mt-24 rounded-2xl border border-line bg-surface p-4 shadow-card sm:p-5"
       >
-        <h2 className="mb-4 font-display text-lg font-semibold text-ink">
-          {editingId ? 'Editar producto' : 'Nuevo producto'}
-        </h2>
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <h2 className="font-display text-lg font-semibold text-ink">
+            {editingId ? 'Editar producto' : 'Nuevo producto'}
+          </h2>
+          <button
+            type="button"
+            onClick={startNew}
+            className="hidden items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-inkfaint transition-colors hover:border-awning hover:text-awning md:flex"
+          >
+            <ScanBarcode size={14} strokeWidth={2.4} />
+            Escanear
+          </button>
+        </div>
         <form onSubmit={handleSubmit} className="space-y-3.5">
           <div>
             <label htmlFor="prod-name" className="mb-1.5 block text-xs font-semibold text-inkfaint">
@@ -330,15 +385,58 @@ export default function Stock() {
             />
           </div>
           <div>
-            <label htmlFor="prod-barcode" className="mb-1.5 block text-xs font-semibold text-inkfaint">
-              Código de barras
-            </label>
-            <input
-              id="prod-barcode"
-              value={form.barcode}
-              onChange={(e) => setForm({ ...form, barcode: e.target.value })}
-              className={`${inputClass} font-mono`}
-            />
+            <div className="mb-1.5 flex items-baseline justify-between gap-2">
+              <label htmlFor="prod-barcode" className="block text-xs font-semibold text-inkfaint">
+                Código
+              </label>
+              <button
+                type="button"
+                onClick={generateInternalCode}
+                className="text-xs font-semibold text-awning transition-colors hover:text-awning-dark"
+              >
+                Generar código interno
+              </button>
+            </div>
+            <div className="relative">
+              <span
+                aria-hidden="true"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-inkfaint/50"
+              >
+                <ScanBarcode size={16} strokeWidth={2} />
+              </span>
+              <input
+                id="prod-barcode"
+                ref={barcodeRef}
+                value={form.barcode}
+                onChange={(e) => setForm({ ...form, barcode: e.target.value })}
+                placeholder="Pasá el lector acá"
+                onKeyDown={(e) => {
+                  // El lector manda Enter al final: no queremos que eso guarde
+                  // el producto a medio cargar.
+                  if (e.key === 'Enter') e.preventDefault()
+                }}
+                className={`${inputClass} pl-9 font-mono ${
+                  duplicate ? 'border-brick focus:border-brick' : ''
+                }`}
+              />
+            </div>
+            {duplicate ? (
+              <p className="mt-1.5 text-xs font-medium text-brick-dark">
+                Ese código ya lo usa &ldquo;{duplicate.name}&rdquo;.{' '}
+                <button
+                  type="button"
+                  onClick={() => startEdit(duplicate)}
+                  className="font-semibold underline"
+                >
+                  Editar ese producto
+                </button>
+              </p>
+            ) : (
+              <p className="mt-1.5 text-xs text-inkfaint">
+                Con el cursor en este campo, escaneá el producto y el código se
+                completa solo. Si no tiene, generá uno interno.
+              </p>
+            )}
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-inkfaint">Se vende por</label>
@@ -471,7 +569,8 @@ export default function Stock() {
             )}
             <button
               type="submit"
-              className="flex-1 rounded-lg bg-awning py-2.5 font-semibold text-white shadow-card transition-colors hover:bg-awning-dark"
+              disabled={!!duplicate}
+              className="flex-1 rounded-lg bg-awning py-2.5 font-semibold text-white shadow-card transition-colors hover:bg-awning-dark disabled:bg-paper2 disabled:text-inkfaint/70 disabled:shadow-none"
             >
               {editingId ? 'Guardar' : 'Agregar'}
             </button>
