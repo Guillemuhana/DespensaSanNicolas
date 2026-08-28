@@ -7,15 +7,19 @@ import { supabase } from './supabaseClient'
  * `products` y adaptamos las escrituras; cuando se corra la migración, todo
  * se activa solo sin tocar código.
  */
-export const schema = { costs: false, suppliers: false }
+export const schema = { costs: false, suppliers: false, photos: false }
 
 /** Saca del payload las columnas que la base todavía no tiene. */
 function knownColumns(payload) {
   const out = { ...payload }
   if (!schema.costs) delete out.cost
   if (!schema.suppliers) delete out.supplier_id
+  if (!schema.photos) delete out.image_url
   return out
 }
+
+// Bucket de Storage donde viven las fotos de producto (migración 004).
+const PHOTO_BUCKET = 'productos'
 
 // ---------- Productos / stock ----------
 
@@ -28,8 +32,20 @@ export async function fetchProducts() {
   if (data.length > 0) {
     schema.costs = 'cost' in data[0]
     schema.suppliers = 'supplier_id' in data[0]
+    schema.photos = 'image_url' in data[0]
   }
   return data
+}
+
+/** Sube la foto ya achicada y devuelve el link público para guardar. */
+export async function uploadProductPhoto(blob) {
+  const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`
+  const { error } = await supabase.storage
+    .from(PHOTO_BUCKET)
+    .upload(name, blob, { contentType: 'image/jpeg', cacheControl: '31536000' })
+  if (error) throw error
+  const { data } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(name)
+  return data.publicUrl
 }
 
 export async function findProductByBarcode(barcode) {

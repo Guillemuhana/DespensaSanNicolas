@@ -13,7 +13,10 @@ import PaymentModal from '../components/PaymentModal'
 import QuickProductModal from '../components/QuickProductModal'
 import TicketPrint from '../components/TicketPrint'
 import { printTicket } from '../lib/print'
-import { ChevronDown, Plus, Printer, ScanBarcode } from 'lucide-react'
+import useBarcodeScanner from '../lib/useBarcodeScanner'
+import CameraScanner from '../components/CameraScanner'
+import { cameraAvailable } from '../lib/camera'
+import { Camera, ChevronDown, Plus, Printer, ScanBarcode } from 'lucide-react'
 
 export default function POS() {
   const [barcode, setBarcode] = useState('')
@@ -29,12 +32,20 @@ export default function POS() {
   const [quickProduct, setQuickProduct] = useState(null) // { barcode } | null
   // El catálogo completo arranca plegado: en el mostrador manda el escáner.
   const [showCatalog, setShowCatalog] = useState(false)
+  const [showCamera, setShowCamera] = useState(false)
+  const [cameraHint, setCameraHint] = useState(null)
   const inputRef = useRef(null)
 
   useEffect(() => {
     loadData()
     inputRef.current?.focus()
   }, [])
+
+  // El lector sigue funcionando aunque el foco se haya ido del campo, salvo
+  // que haya un modal abierto: ahí el escaneo no debe agregar nada por detrás.
+  useBarcodeScanner(processCode, {
+    enabled: !showPayment && !pendingWeightProduct && !quickProduct && !showCamera,
+  })
 
   async function loadData() {
     try {
@@ -109,10 +120,16 @@ export default function POS() {
     })
   }
 
-  async function handleScan(e) {
+  function handleScan(e) {
     e.preventDefault()
     const code = barcode.trim()
     if (!code) return
+    processCode(code)
+  }
+
+  // Un mismo camino para el lector de pistola, la cámara y lo escrito a mano.
+  // Devuelve qué pasó, así la cámara sabe si puede seguir escaneando.
+  async function processCode(code) {
     setStatus(null)
     setUnknownCode(null)
     try {
@@ -120,37 +137,62 @@ export default function POS() {
       if (!product) product = await findProductByBarcode(code)
       if (!product) {
         // Enter sobre un nombre escrito a mano: si hay una sola coincidencia la
-        // cargamos derecho, y si hay varias abrimos la lista para elegir.
+        // cargamos derecho, y si hay varias avisamos para que elijan.
         const matches = matchProducts(products, code)
-        if (matches.length === 1) {
-          pickProduct(matches[0])
-          return
-        }
+        if (matches.length === 1) return pickProduct(matches[0])
         if (matches.length > 1) {
           setStatus({
             type: 'success',
             text: `Hay ${matches.length} productos que coinciden: tocá el que va.`,
           })
-          return
+          return { outcome: 'multiple' }
         }
         setUnknownCode(code)
         setStatus({ type: 'error', text: `No hay ningún producto con el código "${code}".` })
         setBarcode('')
-        return
+        return { outcome: 'unknown' }
       }
-      if (product.sale_type === 'weight') {
-        setPendingWeightProduct(product)
-      } else {
-        if (product.stock <= 0) {
-          setStatus({ type: 'error', text: `"${product.name}" no tiene stock.` })
-        } else {
-          addUnitItem(product)
-        }
-      }
+      setBarcode('')
+      return addProduct(product)
     } catch (err) {
       setStatus({ type: 'error', text: err.message })
+      return { outcome: 'error' }
     }
-    setBarcode('')
+  }
+
+  // Lo manda al ticket, o abre el teclado de peso si se vende por kilo.
+  function addProduct(p) {
+    if (p.sale_type === 'weight') {
+      setPendingWeightProduct(p)
+      return { outcome: 'modal', name: p.name }
+    }
+    if (Number(p.stock) <= 0) {
+      setStatus({ type: 'error', text: `"${p.name}" no tiene stock.` })
+      return { outcome: 'nostock', name: p.name }
+    }
+    addUnitItem(p)
+    return { outcome: 'added', name: p.name }
+  }
+
+  // La cámara queda abierta mientras se sigan agregando cosas al ticket;
+  // cualquier otra cosa (peso, sin stock, código nuevo) necesita la pantalla.
+  async function handleCameraScan(code) {
+    const res = await processCode(code)
+    if (res?.outcome === 'added') {
+      setCameraHint(`Listo: ${res.name}. Seguí con el próximo.`)
+      return
+    }
+    closeCamera()
+  }
+
+  function openCamera() {
+    setCameraHint(null)
+    setShowCamera(true)
+  }
+
+  function closeCamera() {
+    setShowCamera(false)
+    setTimeout(() => inputRef.current?.focus(), 50)
   }
 
   // Alta al vuelo: el producto queda cargado y entra al ticket sin salir de acá.
@@ -217,15 +259,10 @@ export default function POS() {
   function pickProduct(p) {
     setStatus(null)
     setUnknownCode(null)
-    if (p.sale_type === 'weight') {
-      setPendingWeightProduct(p)
-    } else if (Number(p.stock) <= 0) {
-      setStatus({ type: 'error', text: `"${p.name}" no tiene stock.` })
-    } else {
-      addUnitItem(p)
-    }
+    const res = addProduct(p)
     setBarcode('')
     inputRef.current?.focus()
+    return res
   }
 
   return (
@@ -248,7 +285,8 @@ export default function POS() {
               Producto nuevo
             </button>
           </div>
-          <div className="relative">
+          <div className="flex gap-2">
+          <div className="relative flex-1">
             <span
               aria-hidden="true"
               className="absolute left-4 top-1/2 -translate-y-1/2 text-inkfaint/60"
@@ -280,6 +318,22 @@ export default function POS() {
               autoComplete="off"
             />
           </div>
+            {cameraAvailable && (
+              <button
+                type="button"
+                onClick={openCamera}
+                aria-label="Escanear con la cámara del celular"
+                className="flex shrink-0 items-center justify-center rounded-xl border border-line bg-surface px-4 text-inkfaint shadow-card transition-colors hover:border-awning hover:text-awning"
+              >
+                <Camera size={22} strokeWidth={2} />
+              </button>
+            )}
+          </div>
+          <p className="mt-1.5 flex items-center gap-1.5 text-xs text-inkfaint">
+            <ScanBarcode size={13} strokeWidth={2.2} className="shrink-0" />
+            El lector anda aunque el cursor no esté acá
+            {cameraAvailable ? ', o escaneá con la cámara.' : '.'}
+          </p>
         </form>
 
         {status && (
@@ -371,6 +425,14 @@ export default function POS() {
                         disabled={out}
                         className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-awning-50/60 disabled:pointer-events-none disabled:opacity-45"
                       >
+                        {p.image_url && (
+                          <img
+                            src={p.image_url}
+                            alt=""
+                            loading="lazy"
+                            className="h-9 w-9 shrink-0 rounded-lg border border-line object-cover"
+                          />
+                        )}
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-medium leading-tight text-ink">
                             {p.name}
@@ -440,6 +502,15 @@ export default function POS() {
       )}
 
       <TicketPrint sale={lastSale} />
+
+      {showCamera && (
+        <CameraScanner
+          title="Escanear productos"
+          hint={cameraHint}
+          onDetect={handleCameraScan}
+          onClose={closeCamera}
+        />
+      )}
 
       {quickProduct && (
         <QuickProductModal

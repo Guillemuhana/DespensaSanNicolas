@@ -5,10 +5,14 @@ import {
   updateProduct,
   deleteProduct,
   fetchSuppliers,
+  uploadProductPhoto,
   schema,
 } from '../lib/queries'
+import { resizeImage } from '../lib/image'
 import RestockModal from '../components/RestockModal'
-import { ScanBarcode } from 'lucide-react'
+import CameraScanner from '../components/CameraScanner'
+import { cameraAvailable } from '../lib/camera'
+import { Camera, ImagePlus, ScanBarcode, X } from 'lucide-react'
 
 const emptyForm = {
   name: '',
@@ -19,6 +23,7 @@ const emptyForm = {
   stock: '',
   min_stock: '',
   supplier_id: '',
+  image_url: '',
 }
 
 const inputClass =
@@ -32,8 +37,11 @@ export default function Stock() {
   const [status, setStatus] = useState(null)
   const [suppliers, setSuppliers] = useState([])
   const [restocking, setRestocking] = useState(null)
+  const [showCamera, setShowCamera] = useState(false)
+  const [photoBusy, setPhotoBusy] = useState(false)
   const formRef = useRef(null)
   const barcodeRef = useRef(null)
+  const photoRef = useRef(null)
 
   useEffect(() => {
     load()
@@ -75,6 +83,7 @@ export default function Stock() {
       stock: p.stock,
       min_stock: p.min_stock,
       supplier_id: p.supplier_id || '',
+      image_url: p.image_url || '',
     })
   }
 
@@ -103,6 +112,24 @@ export default function Stock() {
     setForm((f) => ({ ...f, barcode: `INT-${String(next).padStart(4, '0')}` }))
   }
 
+  // En el celular esto abre la cámara directo; en la compu, el explorador.
+  async function handlePhoto(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setPhotoBusy(true)
+    setStatus(null)
+    try {
+      const blob = await resizeImage(file)
+      const url = await uploadProductPhoto(blob)
+      setForm((f) => ({ ...f, image_url: url }))
+    } catch (err) {
+      setStatus({ type: 'error', text: 'No se pudo subir la foto: ' + err.message })
+    } finally {
+      setPhotoBusy(false)
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setStatus(null)
@@ -119,6 +146,7 @@ export default function Stock() {
       stock: Number(form.stock) || 0,
       min_stock: Number(form.min_stock) || 0,
       supplier_id: form.supplier_id || null,
+      image_url: form.image_url || null,
     }
     try {
       if (editingId) {
@@ -224,9 +252,19 @@ export default function Stock() {
             return (
               <li key={p.id} className="rounded-xl border border-line bg-surface p-3 shadow-card">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="break-words font-medium text-ink">{p.name}</p>
-                    <p className="font-mono text-xs text-inkfaint">{p.barcode || 'sin código'}</p>
+                  <div className="flex min-w-0 items-start gap-2.5">
+                    {p.image_url && (
+                      <img
+                        src={p.image_url}
+                        alt=""
+                        loading="lazy"
+                        className="h-11 w-11 shrink-0 rounded-lg border border-line object-cover"
+                      />
+                    )}
+                    <div className="min-w-0">
+                      <p className="break-words font-medium text-ink">{p.name}</p>
+                      <p className="font-mono text-xs text-inkfaint">{p.barcode || 'sin código'}</p>
+                    </div>
                   </div>
                   <p className="shrink-0 font-mono tabular font-semibold text-ink">
                     ${Number(p.price).toLocaleString('es-AR')}
@@ -291,8 +329,22 @@ export default function Stock() {
                 return (
                   <tr key={p.id} className="group transition-colors hover:bg-paper2/40">
                     <td className="px-5 py-3">
-                      <p className="font-medium text-ink">{p.name}</p>
-                      <p className="font-mono text-xs text-inkfaint">{p.barcode || 'sin código'}</p>
+                      <div className="flex items-center gap-3">
+                        {p.image_url && (
+                          <img
+                            src={p.image_url}
+                            alt=""
+                            loading="lazy"
+                            className="h-10 w-10 shrink-0 rounded-lg border border-line object-cover"
+                          />
+                        )}
+                        <div className="min-w-0">
+                          <p className="font-medium text-ink">{p.name}</p>
+                          <p className="font-mono text-xs text-inkfaint">
+                            {p.barcode || 'sin código'}
+                          </p>
+                        </div>
+                      </div>
                     </td>
                     <td className="whitespace-nowrap px-5 py-3 font-mono tabular font-medium">
                       ${Number(p.price).toLocaleString('es-AR')}
@@ -372,6 +424,54 @@ export default function Stock() {
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-3.5">
+          {schema.photos && (
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-inkfaint">Foto</label>
+              <div className="flex items-center gap-3">
+                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-line bg-paper2">
+                  {form.image_url ? (
+                    <>
+                      <img src={form.image_url} alt="" className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, image_url: '' })}
+                        aria-label="Quitar la foto"
+                        className="absolute right-1 top-1 rounded-full bg-ink/70 p-1 text-white transition-colors hover:bg-ink"
+                      >
+                        <X size={12} strokeWidth={3} />
+                      </button>
+                    </>
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center text-inkfaint/40">
+                      <ImagePlus size={22} strokeWidth={1.8} />
+                    </span>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => photoRef.current?.click()}
+                    disabled={photoBusy}
+                    className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-sm font-semibold text-inkfaint transition-colors hover:border-awning hover:text-awning disabled:opacity-60"
+                  >
+                    <Camera size={16} strokeWidth={2.2} />
+                    {photoBusy ? 'Subiendo...' : form.image_url ? 'Cambiar foto' : 'Sacar foto'}
+                  </button>
+                  <p className="mt-1.5 text-xs text-inkfaint">
+                    Desde el celular abre la cámara.
+                  </p>
+                </div>
+              </div>
+              <input
+                ref={photoRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handlePhoto}
+                className="hidden"
+              />
+            </div>
+          )}
           <div>
             <label htmlFor="prod-name" className="mb-1.5 block text-xs font-semibold text-inkfaint">
               Nombre
@@ -397,28 +497,40 @@ export default function Stock() {
                 Generar código interno
               </button>
             </div>
-            <div className="relative">
-              <span
-                aria-hidden="true"
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-inkfaint/50"
-              >
-                <ScanBarcode size={16} strokeWidth={2} />
-              </span>
-              <input
-                id="prod-barcode"
-                ref={barcodeRef}
-                value={form.barcode}
-                onChange={(e) => setForm({ ...form, barcode: e.target.value })}
-                placeholder="Pasá el lector acá"
-                onKeyDown={(e) => {
-                  // El lector manda Enter al final: no queremos que eso guarde
-                  // el producto a medio cargar.
-                  if (e.key === 'Enter') e.preventDefault()
-                }}
-                className={`${inputClass} pl-9 font-mono ${
-                  duplicate ? 'border-brick focus:border-brick' : ''
-                }`}
-              />
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <span
+                  aria-hidden="true"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-inkfaint/50"
+                >
+                  <ScanBarcode size={16} strokeWidth={2} />
+                </span>
+                <input
+                  id="prod-barcode"
+                  ref={barcodeRef}
+                  value={form.barcode}
+                  onChange={(e) => setForm({ ...form, barcode: e.target.value })}
+                  placeholder="Pasá el lector acá"
+                  onKeyDown={(e) => {
+                    // El lector manda Enter al final: no queremos que eso guarde
+                    // el producto a medio cargar.
+                    if (e.key === 'Enter') e.preventDefault()
+                  }}
+                  className={`${inputClass} pl-9 font-mono ${
+                    duplicate ? 'border-brick focus:border-brick' : ''
+                  }`}
+                />
+              </div>
+              {cameraAvailable && (
+                <button
+                  type="button"
+                  onClick={() => setShowCamera(true)}
+                  aria-label="Leer el código con la cámara"
+                  className="flex shrink-0 items-center justify-center rounded-lg border border-line px-3 text-inkfaint transition-colors hover:border-awning hover:text-awning"
+                >
+                  <Camera size={18} strokeWidth={2} />
+                </button>
+              )}
             </div>
             {duplicate ? (
               <p className="mt-1.5 text-xs font-medium text-brick-dark">
@@ -577,6 +689,18 @@ export default function Stock() {
           </div>
         </form>
       </div>
+
+      {showCamera && (
+        <CameraScanner
+          title="Leer el código del producto"
+          hint="Apuntá al código de barras del envase. Se copia solo al formulario."
+          onDetect={(code) => {
+            setForm((f) => ({ ...f, barcode: code }))
+            setShowCamera(false)
+          }}
+          onClose={() => setShowCamera(false)}
+        />
+      )}
 
       {restocking && (
         <RestockModal

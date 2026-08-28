@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import {
-  BarChart3,
-  BellRing,
-  Boxes,
+  Bell,
+  LayoutDashboard,
   Menu,
+  Package,
+  PanelLeftClose,
+  PanelLeftOpen,
   Printer,
   ReceiptText,
-  ScanLine,
+  ScanBarcode,
   Truck,
   Wallet,
   X,
@@ -23,29 +25,30 @@ import Expenses from './pages/Expenses'
 import Suppliers from './pages/Suppliers'
 import Reminders from './pages/Reminders'
 
+// Facturación primero: es la pantalla donde se pasa el día.
 const TABS = [
-  {
-    id: 'home',
-    label: 'Resumen',
-    icon: BarChart3,
-    Page: Dashboard,
-    title: 'Resumen',
-    description: 'Cómo viene el negocio',
-    printLabel: 'Imprimir reporte',
-  },
   {
     id: 'pos',
     label: 'Facturación',
-    icon: ScanLine,
+    icon: ScanBarcode,
     Page: POS,
     title: 'Facturación',
     description: 'Escaneá, cobrá y entregá el ticket',
     printLabel: null, // el ticket se imprime desde el cobro
   },
   {
+    id: 'home',
+    label: 'Resumen',
+    icon: LayoutDashboard,
+    Page: Dashboard,
+    title: 'Resumen',
+    description: 'Cómo viene el negocio',
+    printLabel: 'Imprimir reporte',
+  },
+  {
     id: 'stock',
     label: 'Stock',
-    icon: Boxes,
+    icon: Package,
     Page: Stock,
     title: 'Stock',
     description: 'Productos, precios y reposición',
@@ -63,7 +66,7 @@ const TABS = [
   {
     id: 'reminders',
     label: 'Recordatorios',
-    icon: BellRing,
+    icon: Bell,
     Page: Reminders,
     title: 'Recordatorios',
     description: 'Pedidos, pagos y vencimientos',
@@ -89,9 +92,27 @@ const TABS = [
   },
 ]
 
+const COLLAPSED_KEY = 'despensa:menu-plegado'
+
 export default function App() {
-  const [tab, setTab] = useState('home')
+  const [tab, setTab] = useState('pos')
   const [menuOpen, setMenuOpen] = useState(false)
+  // El menú plegado se recuerda entre sesiones: cada uno trabaja como quiere.
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(COLLAPSED_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(COLLAPSED_KEY, collapsed ? '1' : '0')
+    } catch {
+      // Modo incógnito o storage bloqueado: no pasa nada, se pierde la preferencia.
+    }
+  }, [collapsed])
 
   // En mobile el menú es un cajón: al elegir una sección se cierra solo, y
   // mientras está abierto no se scrollea el fondo.
@@ -114,9 +135,16 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-paper">
-      <Sidebar tab={tab} go={go} className="no-print hidden lg:flex" />
+      <Sidebar
+        tab={tab}
+        go={go}
+        collapsed={collapsed}
+        onToggle={() => setCollapsed((v) => !v)}
+        layoutId="nav-active-desktop"
+        className="no-print hidden lg:flex"
+      />
 
-      {/* Cajón lateral en teléfono y tablet */}
+      {/* Cajón lateral en teléfono y tablet: ahí siempre va desplegado. */}
       <AnimatePresence>
         {menuOpen && (
           <div className="no-print fixed inset-0 z-50 lg:hidden">
@@ -135,13 +163,24 @@ export default function App() {
               transition={{ type: 'spring', stiffness: 380, damping: 38 }}
               className="absolute inset-y-0 left-0 w-[17rem] max-w-[85vw]"
             >
-              <Sidebar tab={tab} go={go} onClose={() => setMenuOpen(false)} className="flex" />
+              <Sidebar
+                tab={tab}
+                go={go}
+                collapsed={false}
+                onClose={() => setMenuOpen(false)}
+                layoutId="nav-active-mobile"
+                className="flex"
+              />
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      <div className="lg:pl-[17rem]">
+      <div
+        className={`transition-[padding] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          collapsed ? 'lg:pl-[5rem]' : 'lg:pl-[17rem]'
+        }`}
+      >
         <header className="no-print sticky top-0 z-30 border-b border-line bg-paper/85 backdrop-blur-xl">
           <div className="flex items-center gap-3 px-4 py-3 sm:px-6 lg:py-4">
             <button
@@ -198,7 +237,7 @@ export default function App() {
   )
 }
 
-function Sidebar({ tab, go, onClose, className = '' }) {
+function Sidebar({ tab, go, collapsed, onToggle, onClose, layoutId, className = '' }) {
   const raw = new Date().toLocaleDateString('es-AR', {
     weekday: 'long',
     day: 'numeric',
@@ -209,33 +248,53 @@ function Sidebar({ tab, go, onClose, className = '' }) {
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-50 w-[17rem] flex-col border-r border-line bg-surface ${className}`}
+      className={`fixed inset-y-0 left-0 z-50 flex-col border-r border-line bg-surface transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        collapsed ? 'w-[5rem]' : 'w-[17rem]'
+      } ${className}`}
     >
-      <div className="flex items-center justify-between gap-2 px-5 pb-4 pt-6">
-        <h1 className="flex items-center">
+      <div
+        className={`flex items-center gap-2 pb-4 pt-5 ${
+          collapsed ? 'flex-col px-2' : 'justify-between px-5 pt-6'
+        }`}
+      >
+        <h1 className="flex min-w-0 items-center">
           <img
             src="/logo.png"
             alt=""
             width="528"
             height="420"
-            className="h-32 w-auto select-none"
+            className={`w-auto select-none transition-all duration-300 ${
+              collapsed ? 'h-11' : 'h-28'
+            }`}
             draggable="false"
           />
           <span className="sr-only">Despensa San Nicolás</span>
         </h1>
+
+        {onToggle && (
+          <button
+            onClick={onToggle}
+            aria-label={collapsed ? 'Desplegar menú' : 'Plegar menú'}
+            title={collapsed ? 'Desplegar menú' : 'Plegar menú'}
+            className="shrink-0 rounded-lg p-2 text-inkfaint transition-colors hover:bg-paper2 hover:text-ink"
+          >
+            {collapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}
+          </button>
+        )}
+
         {onClose && (
           <button
             onClick={onClose}
             aria-label="Cerrar menú"
-            className="rounded-lg p-2 text-inkfaint transition-colors hover:bg-paper2 hover:text-ink"
+            className="shrink-0 rounded-lg p-2 text-inkfaint transition-colors hover:bg-paper2 hover:text-ink"
           >
             <X size={20} />
           </button>
         )}
       </div>
 
-      <nav className="flex-1 space-y-1 px-3">
-        <p className="eyebrow px-2 pb-2 pt-3 text-inkfaint/70">Menú</p>
+      <nav className={`flex-1 space-y-1 ${collapsed ? 'px-2.5' : 'px-3'}`}>
+        {!collapsed && <p className="eyebrow px-2 pb-2 pt-3 text-inkfaint/70">Menú</p>}
         {TABS.map((t) => {
           const active = tab === t.id
           const Icon = t.icon
@@ -244,27 +303,41 @@ function Sidebar({ tab, go, onClose, className = '' }) {
               key={t.id}
               onClick={() => go(t.id)}
               aria-current={active ? 'page' : undefined}
-              className={`relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
-                active ? 'text-awning-dark' : 'text-inkfaint hover:bg-paper2/70 hover:text-ink'
-              }`}
+              title={collapsed ? t.label : undefined}
+              className={`group relative flex w-full items-center rounded-xl text-left text-sm font-semibold transition-colors ${
+                collapsed ? 'justify-center px-0 py-3' : 'gap-3 px-3 py-2.5'
+              } ${active ? 'text-awning-dark' : 'text-inkfaint hover:bg-paper2/70 hover:text-ink'}`}
             >
               {active && (
                 <motion.span
-                  layoutId="nav-active"
+                  layoutId={layoutId}
                   className="absolute inset-0 rounded-xl bg-awning-50 ring-1 ring-awning-100"
                   transition={{ type: 'spring', stiffness: 420, damping: 34 }}
                 />
               )}
-              <Icon size={18} strokeWidth={2.2} className="relative shrink-0" />
-              <span className="relative">{t.label}</span>
+              <Icon size={19} strokeWidth={2.2} className="relative shrink-0" />
+              {!collapsed && <span className="relative truncate">{t.label}</span>}
+
+              {/* Plegado, el nombre aparece al pasar el mouse. */}
+              {collapsed && (
+                <span className="pointer-events-none absolute left-full z-50 ml-3 whitespace-nowrap rounded-lg bg-ink px-2.5 py-1.5 text-xs font-semibold text-white opacity-0 shadow-pop transition-opacity duration-150 group-hover:opacity-100">
+                  {t.label}
+                </span>
+              )}
             </button>
           )
         })}
       </nav>
 
-      <div className="border-t border-line px-5 py-4">
-        <p className="font-display text-sm font-semibold text-ink">Despensa San Nicolás</p>
-        <p className="mt-0.5 text-xs text-inkfaint">{today}</p>
+      <div className={`border-t border-line py-4 ${collapsed ? 'px-2 text-center' : 'px-5'}`}>
+        {collapsed ? (
+          <p className="font-display text-sm font-semibold text-ink">SN</p>
+        ) : (
+          <>
+            <p className="font-display text-sm font-semibold text-ink">Despensa San Nicolás</p>
+            <p className="mt-0.5 text-xs text-inkfaint">{today}</p>
+          </>
+        )}
       </div>
     </aside>
   )
