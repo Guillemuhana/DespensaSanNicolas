@@ -373,10 +373,15 @@ function Sidebar({ tab, go, collapsed, onToggle, onClose, layoutId, className = 
               href={QUOTE_URL}
               target="_blank"
               rel="noreferrer"
-              className="mt-2.5 flex items-center gap-1.5 text-xs font-semibold text-awning transition-colors hover:text-awning-dark"
+              className="group mt-2.5 block transition-colors"
             >
-              Demo hasta el 29/08/2026 · Presupuesto
-              <ExternalLink size={12} strokeWidth={2.6} className="shrink-0" />
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-awning group-hover:text-awning-dark">
+                Aprovechá el 30% de descuento
+                <ExternalLink size={12} strokeWidth={2.6} className="shrink-0" />
+              </span>
+              <span className="mt-0.5 block text-[0.7rem] text-inkfaint">
+                Demo hasta el 29/08/2026
+              </span>
             </a>
           </>
         ) : (
@@ -384,12 +389,12 @@ function Sidebar({ tab, go, collapsed, onToggle, onClose, layoutId, className = 
             href={QUOTE_URL}
             target="_blank"
             rel="noreferrer"
-            title="Demo hasta el 29/08/2026 · Ver presupuesto"
+            title="Demo hasta el 29/08/2026 · 30% de descuento en el presupuesto"
             className="block font-display text-sm font-semibold text-ink transition-colors hover:text-awning"
           >
             SN
             <span className="mt-1 block text-[0.6rem] font-semibold uppercase tracking-wider text-awning">
-              Demo
+              -30%
             </span>
           </a>
         )}

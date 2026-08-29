@@ -40,20 +40,30 @@ export default function DemoNotice() {
       </span>
 
       <div className="min-w-0 flex-1">
-        <p className={`eyebrow ${expired ? 'text-brick-dark' : 'text-awning-dark'}`}>
-          {countdown(left)}
-        </p>
-        <p className="mt-0.5 text-sm leading-relaxed text-ink">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className={`eyebrow ${expired ? 'text-brick-dark' : 'text-awning-dark'}`}>
+            {countdown(left)}
+          </p>
+          <span className="rounded-full bg-brick px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-white">
+            30% de descuento
+          </span>
+        </div>
+        <p className="mt-1 text-sm leading-relaxed text-ink">
           Esta es una demo de la app.{' '}
           {expired ? (
-            <>El demo gratuito caducó el sábado 29 de agosto de 2026.</>
+            <>
+              El demo gratuito caducó el sábado 29 de agosto de 2026 y con él se terminó el{' '}
+              <strong className="font-semibold">30% de descuento</strong>. Consultanos por el
+              presupuesto actualizado.
+            </>
           ) : (
             <>
               El demo gratuito caduca el{' '}
-              <strong className="font-semibold">sábado 29 de agosto de 2026</strong>.
+              <strong className="font-semibold">sábado 29 de agosto de 2026</strong>. Contratando
+              antes de esa fecha aprovechás el{' '}
+              <strong className="font-semibold">30% de descuento</strong> del presupuesto.
             </>
-          )}{' '}
-          Para seguir usándola, mirá el presupuesto.
+          )}
         </p>
       </div>
 
@@ -65,7 +75,7 @@ export default function DemoNotice() {
           expired ? 'bg-brick hover:bg-brick-dark' : 'bg-awning hover:bg-awning-dark'
         }`}
       >
-        Ver presupuesto
+        {expired ? 'Ver presupuesto' : 'Aprovechar el 30%'}
         <ExternalLink size={15} strokeWidth={2.4} />
       </a>
     </div>
