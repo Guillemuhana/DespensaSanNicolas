@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import {
   Bell,
+  ExternalLink,
   LayoutDashboard,
   Menu,
   Package,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react'
 import { isSupabaseConfigured } from './lib/supabaseClient'
 import SetupNotice from './components/SetupNotice'
+import DemoNotice, { QUOTE_URL } from './components/DemoNotice'
 import PrintHeader from './components/PrintHeader'
 import Dashboard from './pages/Dashboard'
 import POS from './pages/POS'
@@ -220,6 +222,7 @@ export default function App() {
 
         <main className="px-4 py-5 sm:px-6 sm:py-7">
           <PrintHeader title={current.title} />
+          <DemoNotice />
           <AnimatePresence mode="wait">
             <motion.div
               key={tab}
@@ -366,9 +369,29 @@ function Sidebar({ tab, go, collapsed, onToggle, onClose, layoutId, className = 
               Despensa San Nicolás
             </p>
             <p className="mt-0.5 truncate text-xs text-inkfaint">{today}</p>
+            <a
+              href={QUOTE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2.5 flex items-center gap-1.5 text-xs font-semibold text-awning transition-colors hover:text-awning-dark"
+            >
+              Demo hasta el 29/08/2026 · Presupuesto
+              <ExternalLink size={12} strokeWidth={2.6} className="shrink-0" />
+            </a>
           </>
         ) : (
-          <p className="font-display text-sm font-semibold text-ink">SN</p>
+          <a
+            href={QUOTE_URL}
+            target="_blank"
+            rel="noreferrer"
+            title="Demo hasta el 29/08/2026 · Ver presupuesto"
+            className="block font-display text-sm font-semibold text-ink transition-colors hover:text-awning"
+          >
+            SN
+            <span className="mt-1 block text-[0.6rem] font-semibold uppercase tracking-wider text-awning">
+              Demo
+            </span>
+          </a>
         )}
       </div>
     </aside>
