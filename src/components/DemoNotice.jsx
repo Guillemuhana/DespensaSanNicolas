@@ -1,13 +1,13 @@
 import { CalendarClock, ExternalLink } from 'lucide-react'
 
-// Fin del período de prueba: sábado 29 de agosto de 2026, al cierre del día.
-const DEMO_END = new Date(2026, 7, 29, 23, 59, 59)
+// Fin del período de prueba: lunes 31 de agosto de 2026, al cierre del día.
+const DEMO_END = new Date(2026, 7, 31, 23, 59, 59)
 export const QUOTE_URL = 'https://numera-presupuestos.vercel.app/p/173f4ae3-0c1d-4baa-849d-08f36324d763'
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 
-// Días completos que faltan, contados por fecha y no por horas: si hoy es el 27
-// y vence el 29, faltan 2, sin importar a qué hora se abra la app.
+// Días completos que faltan, contados por fecha y no por horas: si hoy es el 29
+// y vence el 31, faltan 2, sin importar a qué hora se abra la app.
 function daysLeft(now = new Date()) {
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const startOfEnd = new Date(DEMO_END.getFullYear(), DEMO_END.getMonth(), DEMO_END.getDate())
@@ -52,14 +52,14 @@ export default function DemoNotice() {
           Esta es una demo de la app.{' '}
           {expired ? (
             <>
-              El demo gratuito caducó el sábado 29 de agosto de 2026 y con él se terminó el{' '}
+              El demo gratuito caducó el lunes 31 de agosto de 2026 y con él se terminó el{' '}
               <strong className="font-semibold">30% de descuento</strong>. Consultanos por el
               presupuesto actualizado.
             </>
           ) : (
             <>
               El demo gratuito caduca el{' '}
-              <strong className="font-semibold">sábado 29 de agosto de 2026</strong>. Contratando
+              <strong className="font-semibold">lunes 31 de agosto de 2026</strong>. Contratando
               antes de esa fecha aprovechás el{' '}
               <strong className="font-semibold">30% de descuento</strong> del presupuesto.
             </>

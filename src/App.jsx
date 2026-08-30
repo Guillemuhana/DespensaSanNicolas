@@ -380,7 +380,7 @@ function Sidebar({ tab, go, collapsed, onToggle, onClose, layoutId, className = 
                 <ExternalLink size={12} strokeWidth={2.6} className="shrink-0" />
               </span>
               <span className="mt-0.5 block text-[0.7rem] text-inkfaint">
-                Demo hasta el 29/08/2026
+                Demo hasta el 31/08/2026
               </span>
             </a>
           </>
@@ -389,7 +389,7 @@ function Sidebar({ tab, go, collapsed, onToggle, onClose, layoutId, className = 
             href={QUOTE_URL}
             target="_blank"
             rel="noreferrer"
-            title="Demo hasta el 29/08/2026 · 30% de descuento en el presupuesto"
+            title="Demo hasta el 31/08/2026 · 30% de descuento en el presupuesto"
             className="block font-display text-sm font-semibold text-ink transition-colors hover:text-awning"
           >
             SN
