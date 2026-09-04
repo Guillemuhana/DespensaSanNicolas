@@ -53,7 +53,7 @@ export default function Login() {
           alt="Firenze Store"
           width="1254"
           height="1254"
-          className="mx-auto mb-6 h-32 w-auto rounded-full"
+          className="mx-auto mb-5 h-56 w-auto rounded-full sm:h-64"
         />
 
         <h1 className="text-center font-display text-xl font-semibold text-ink">Firenze Store</h1>
