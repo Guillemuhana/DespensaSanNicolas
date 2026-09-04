@@ -1,24 +1,9 @@
 import { useState } from 'react'
 import { LogIn } from 'lucide-react'
-import { supabase } from '../lib/supabaseClient'
 
-// La app tiene una sola cuenta, así que no se pide usuario: en la pantalla va
-// nada más la contraseña y el email lo pone el código.
-//
-// Que esta dirección viaje en el bundle no debilita nada: es un identificador,
-// no un secreto. Lo único que abre la puerta es la contraseña, que vive en
-// Supabase y no está en ningún archivo del repo.
-const ACCOUNT_EMAIL = 'firenzeapp@firenzestore.com.ar'
+const PASSWORD = '202714'
 
-/**
- * Puerta de entrada. No hay registro ni recuperación de contraseña: el alta se
- * hace una vez desde el panel de Supabase.
- *
- * Esto no es una cortina. Las políticas de la base (migración 006) sólo dejan
- * pasar al rol `authenticated`, así que sin sesión iniciada la anon key que
- * viaja en el bundle no sirve para leer ni escribir nada.
- */
-export default function Login() {
+export default function Login({ onLogin }) {
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
@@ -27,19 +12,14 @@ export default function Login() {
     e.preventDefault()
     setBusy(true)
     setError(null)
-    const { error: err } = await supabase.auth.signInWithPassword({
-      email: ACCOUNT_EMAIL,
-      password,
-    })
-    if (err) {
-      setError(
-        err.message === 'Invalid login credentials' ? 'Contraseña incorrecta.' : err.message
-      )
+    if (password !== PASSWORD) {
+      setError('Contraseña incorrecta.')
       setPassword('')
       setBusy(false)
+      return
     }
-    // Si entró no hace falta hacer nada: onAuthStateChange en App levanta la
-    // sesión y este componente se desmonta solo.
+    onLogin()
+    setBusy(false)
   }
 
   return (

@@ -95,9 +95,16 @@ const TABS = [
 ]
 
 const COLLAPSED_KEY = 'firenze:menu-plegado'
+const AUTH_KEY = 'firenze:acceso'
 
 export default function App() {
-  const [session, setSession] = useState(undefined)
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    try {
+      return localStorage.getItem(AUTH_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
   const [tab, setTab] = useState('pos')
   const [menuOpen, setMenuOpen] = useState(false)
   // El menú plegado se recuerda entre sesiones: cada uno trabaja como quiere.
@@ -108,15 +115,6 @@ export default function App() {
       return false
     }
   })
-
-  // La sesión la guarda supabase-js en localStorage y la renueva sola; acá
-  // sólo escuchamos para saber si mostrar la app o la puerta.
-  useEffect(() => {
-    if (!isSupabaseConfigured) return
-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
-    return () => sub.subscription.unsubscribe()
-  }, [])
 
   useEffect(() => {
     try {
@@ -136,9 +134,20 @@ export default function App() {
   }, [menuOpen])
 
   if (!isSupabaseConfigured) return <SetupNotice />
-  // Mientras se resuelve la sesión no se muestra nada: es un parpadeo.
-  if (session === undefined) return <div className="min-h-screen bg-paper" />
-  if (!session) return <Login />
+  if (!isAuthenticated) {
+    return (
+      <Login
+        onLogin={() => {
+          try {
+            localStorage.setItem(AUTH_KEY, '1')
+          } catch {
+            // Si el storage esta bloqueado, el acceso dura solo esta renderizacion.
+          }
+          setIsAuthenticated(true)
+        }}
+      />
+    )
+  }
 
   const current = TABS.find((t) => t.id === tab) ?? TABS[0]
   const Page = current.Page
@@ -153,6 +162,14 @@ export default function App() {
       <Sidebar
         tab={tab}
         go={go}
+        onLogout={() => {
+          try {
+            localStorage.removeItem(AUTH_KEY)
+          } catch {
+            // Modo incógnito o storage bloqueado.
+          }
+          setIsAuthenticated(false)
+        }}
         collapsed={collapsed}
         onToggle={() => setCollapsed((v) => !v)}
         layoutId="nav-active-desktop"
@@ -252,7 +269,7 @@ export default function App() {
   )
 }
 
-function Sidebar({ tab, go, collapsed, onToggle, onClose, layoutId, className = '' }) {
+function Sidebar({ tab, go, onLogout, collapsed, onToggle, onClose, layoutId, className = '' }) {
   const [hovering, setHovering] = useState(false)
   const hoverTimer = useRef(null)
   // Plegada pero con el mouse encima se despliega igual, flotando por arriba
@@ -382,7 +399,7 @@ function Sidebar({ tab, go, collapsed, onToggle, onClose, layoutId, className = 
             </p>
             <p className="mt-0.5 truncate text-xs text-inkfaint">{today}</p>
             <button
-              onClick={() => supabase.auth.signOut()}
+              onClick={onLogout}
               className="mt-2.5 flex items-center gap-1.5 text-xs font-semibold text-inkfaint transition-colors hover:text-brick"
             >
               <LogOut size={13} strokeWidth={2.6} />
@@ -391,7 +408,7 @@ function Sidebar({ tab, go, collapsed, onToggle, onClose, layoutId, className = 
           </>
         ) : (
           <button
-            onClick={() => supabase.auth.signOut()}
+            onClick={onLogout}
             aria-label="Salir"
             title="Salir"
             className="mx-auto block rounded-lg p-2 text-inkfaint transition-colors hover:bg-paper2 hover:text-brick"
