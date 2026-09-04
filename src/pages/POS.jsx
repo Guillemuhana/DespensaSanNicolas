@@ -14,6 +14,7 @@ import TicketPrint from '../components/TicketPrint'
 import { printTicket } from '../lib/print'
 import useBarcodeScanner from '../lib/useBarcodeScanner'
 import CameraScanner from '../components/CameraScanner'
+import { CATEGORIES } from '../lib/categories'
 import { cameraAvailable } from '../lib/camera'
 import { Camera, ChevronDown, Plus, Printer, ScanBarcode } from 'lucide-react'
 
@@ -30,6 +31,7 @@ export default function POS() {
   const [quickProduct, setQuickProduct] = useState(null) // { barcode } | null
   // El catálogo completo arranca plegado: en el mostrador manda el escáner.
   const [showCatalog, setShowCatalog] = useState(false)
+  const [catFilter, setCatFilter] = useState('')
   const [showCamera, setShowCamera] = useState(false)
   const [cameraHint, setCameraHint] = useState(null)
   const inputRef = useRef(null)
@@ -225,7 +227,18 @@ export default function POS() {
   // Mientras se escribe se ven los resultados; con el campo vacío el catálogo
   // aparece sólo si lo despliegan.
   const listOpen = query.length > 0 || showCatalog
-  const shownProducts = query ? results : products
+  // Buscar por texto pisa el filtro de rubro: si escribieron algo, mandan los
+  // resultados. Los chips sólo tienen sentido sobre el catálogo desplegado.
+  const shownProducts = query
+    ? results
+    : catFilter
+      ? products.filter((p) => p.category === catFilter)
+      : products
+  // Sólo se ofrecen los rubros que hoy tienen algo cargado.
+  const usedCategories = useMemo(
+    () => CATEGORIES.filter((c) => products.some((p) => p.category === c.id)),
+    [products]
+  )
 
   // Tocar una fila hace lo mismo que escanear el código de ese producto.
   function pickProduct(p) {
@@ -378,18 +391,48 @@ export default function POS() {
           )}
         </div>
 
+        {showCatalog && !query && usedCategories.length > 0 && (
+          <div className="scroll-soft mt-2 flex gap-1.5 overflow-x-auto pb-1">
+            <button
+              onClick={() => setCatFilter('')}
+              className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                catFilter === ''
+                  ? 'border-awning bg-awning text-white'
+                  : 'border-line bg-surface text-inkfaint hover:border-awning hover:text-awning'
+              }`}
+            >
+              Todos
+            </button>
+            {usedCategories.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => setCatFilter(catFilter === c.id ? '' : c.id)}
+                className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                  catFilter === c.id
+                    ? 'border-awning bg-awning text-white'
+                    : 'border-line bg-surface text-inkfaint hover:border-awning hover:text-awning'
+                }`}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {listOpen && (
           <div className="mt-2">
             {shownProducts.length === 0 ? (
               <p className="rounded-xl border border-dashed border-line bg-surface/60 px-4 py-8 text-center text-sm text-inkfaint">
                 {query
                   ? 'Ningún producto coincide con la búsqueda.'
-                  : 'Todavía no hay productos cargados. Agregalos desde la pestaña Stock.'}
+                  : catFilter
+                    ? 'No hay productos en ese rubro.'
+                    : 'Todavía no hay productos cargados. Agregalos desde la pestaña Stock.'}
               </p>
             ) : (
               <ul className="scroll-soft max-h-[21rem] divide-y divide-line/70 overflow-y-auto rounded-xl border border-line bg-surface shadow-card lg:max-h-[calc(100vh-23rem)]">
                 {shownProducts.map((p) => {
-                  const out = p.sale_type === 'unit' && Number(p.stock) <= 0
+                  const out = Number(p.stock) <= 0
                   return (
                     <li key={p.id}>
                       <button

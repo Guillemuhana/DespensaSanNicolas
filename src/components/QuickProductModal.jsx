@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { CATEGORIES } from '../lib/categories'
 
 const inputClass =
   'w-full rounded-lg border border-line bg-surface px-3 py-2 transition-colors focus:border-awning focus:outline-none'
@@ -12,6 +13,7 @@ const inputClass =
 export default function QuickProductModal({ barcode, onCreate, onCancel }) {
   const [form, setForm] = useState({
     name: '',
+    category: '',
     sale_type: 'unit',
     price: '',
     stock: '',
@@ -36,6 +38,7 @@ export default function QuickProductModal({ barcode, onCreate, onCancel }) {
       await onCreate({
         name: form.name.trim(),
         barcode: barcode || null,
+        category: form.category || null,
         sale_type: form.sale_type,
         price: priceNum,
         cost: Number(form.cost) || 0,
@@ -81,6 +84,25 @@ export default function QuickProductModal({ barcode, onCreate, onCancel }) {
               placeholder="Ej. Camisa lino blanca S"
               className={inputClass}
             />
+          </div>
+
+          <div>
+            <label htmlFor="quick-category" className="mb-1.5 block text-xs font-semibold text-inkfaint">
+              Rubro <span className="font-normal">(opcional)</span>
+            </label>
+            <select
+              id="quick-category"
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+              className={inputClass}
+            >
+              <option value="">—</option>
+              {CATEGORIES.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

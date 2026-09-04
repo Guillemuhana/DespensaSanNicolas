@@ -13,10 +13,12 @@ import RestockModal from '../components/RestockModal'
 import CameraScanner from '../components/CameraScanner'
 import { cameraAvailable } from '../lib/camera'
 import { Camera, ImagePlus, ScanBarcode, X } from 'lucide-react'
+import { CATEGORIES, labelOf } from '../lib/categories'
 
 const emptyForm = {
   name: '',
   barcode: '',
+  category: '',
   sale_type: 'unit',
   price: '',
   cost: '',
@@ -34,6 +36,7 @@ export default function Stock() {
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState(null)
   const [search, setSearch] = useState('')
+  const [category, setCategory] = useState('')
   const [status, setStatus] = useState(null)
   const [suppliers, setSuppliers] = useState([])
   const [restocking, setRestocking] = useState(null)
@@ -77,6 +80,7 @@ export default function Stock() {
     setForm({
       name: p.name,
       barcode: p.barcode || '',
+      category: p.category || '',
       sale_type: p.sale_type,
       price: p.price,
       cost: p.cost ?? '',
@@ -140,6 +144,7 @@ export default function Stock() {
     const payload = {
       name: form.name.trim(),
       barcode: form.barcode.trim() || null,
+      category: form.category || null,
       sale_type: form.sale_type,
       price: Number(form.price) || 0,
       cost: Number(form.cost) || 0,
@@ -171,7 +176,9 @@ export default function Stock() {
   }
 
   const filtered = products.filter(
-    (p) => p.name.toLowerCase().includes(search.toLowerCase()) || p.barcode?.includes(search)
+    (p) =>
+      (p.name.toLowerCase().includes(search.toLowerCase()) || p.barcode?.includes(search)) &&
+      (!category || p.category === category)
   )
   const lowCount = products.filter((p) => Number(p.stock) <= Number(p.min_stock)).length
   const noCodeCount = products.filter((p) => !p.barcode).length
@@ -220,6 +227,21 @@ export default function Stock() {
               className="w-full rounded-xl border border-line bg-surface py-2.5 pl-10 pr-4 shadow-card transition-colors focus:border-awning focus:outline-none"
             />
           </div>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            aria-label="Filtrar por rubro"
+            className={`whitespace-nowrap rounded-xl border bg-surface px-3 py-2.5 text-sm font-semibold shadow-card transition-colors focus:border-awning focus:outline-none ${
+              category ? 'border-awning text-awning-dark' : 'border-line text-inkfaint'
+            }`}
+          >
+            <option value="">Todos los rubros</option>
+            {CATEGORIES.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            ))}
+          </select>
           {lowCount > 0 && (
             <span className="whitespace-nowrap rounded-full border border-brick-100 bg-brick-50 px-3 py-1.5 text-xs font-semibold text-brick-dark">
               {lowCount} con stock bajo
@@ -264,6 +286,9 @@ export default function Stock() {
                     <div className="min-w-0">
                       <p className="break-words font-medium text-ink">{p.name}</p>
                       <p className="font-mono text-xs text-inkfaint">{p.barcode || 'sin código'}</p>
+                      {p.category && (
+                        <p className="mt-0.5 text-xs text-awning-dark">{labelOf(p.category)}</p>
+                      )}
                     </div>
                   </div>
                   <p className="shrink-0 font-mono tabular font-semibold text-ink">
@@ -340,6 +365,11 @@ export default function Stock() {
                           <p className="font-medium text-ink">{p.name}</p>
                           <p className="font-mono text-xs text-inkfaint">
                             {p.barcode || 'sin código'}
+                            {p.category && (
+                              <span className="ml-2 font-body text-awning-dark">
+                                {labelOf(p.category)}
+                              </span>
+                            )}
                           </p>
                         </div>
                       </div>
@@ -617,6 +647,27 @@ export default function Stock() {
               onChange={(e) => setForm({ ...form, min_stock: e.target.value })}
               className={`${inputClass} font-mono tabular`}
             />
+          </div>
+          <div>
+            <label
+              htmlFor="prod-category"
+              className="mb-1.5 block text-xs font-semibold text-inkfaint"
+            >
+              Rubro
+            </label>
+            <select
+              id="prod-category"
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+              className={inputClass}
+            >
+              <option value="">—</option>
+              {CATEGORIES.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
           </div>
           {suppliers.length > 0 && (
             <div>
