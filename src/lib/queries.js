@@ -33,6 +33,10 @@ export async function fetchProducts() {
     schema.costs = 'cost' in data[0]
     schema.suppliers = 'supplier_id' in data[0]
     schema.photos = 'image_url' in data[0]
+  } else {
+    // Con la tabla vacía no hay una fila de donde detectar las columnas.
+    // Las migraciones instaladas son la fuente de verdad para el formulario.
+    schema.photos = true
   }
   return data
 }

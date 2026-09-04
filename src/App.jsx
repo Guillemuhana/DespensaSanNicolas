@@ -229,6 +229,10 @@ export default function App() {
               className="h-14 w-auto shrink-0 rounded-full sm:h-16 lg:hidden"
             />
 
+            <span className="min-w-0 truncate font-display text-lg font-semibold text-ink sm:text-xl lg:hidden">
+              Firenze Store
+            </span>
+
             <div className="hidden min-w-0 lg:block">
               <h2 className="truncate font-display text-xl font-semibold text-ink">
                 {current.title}
