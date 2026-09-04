@@ -13,7 +13,7 @@ import RestockModal from '../components/RestockModal'
 import CameraScanner from '../components/CameraScanner'
 import { cameraAvailable } from '../lib/camera'
 import { Camera, ImagePlus, ScanBarcode, X } from 'lucide-react'
-import { CATEGORIES, labelOf } from '../lib/categories'
+import { GROUPED, labelOf } from '../lib/categories'
 
 const emptyForm = {
   name: '',
@@ -236,10 +236,14 @@ export default function Stock() {
             }`}
           >
             <option value="">Todos los rubros</option>
-            {CATEGORIES.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.label}
-              </option>
+              {GROUPED.map((g) => (
+              <optgroup key={g.group} label={g.group}>
+                {g.items.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
           {lowCount > 0 && (
@@ -662,10 +666,14 @@ export default function Stock() {
               className={inputClass}
             >
               <option value="">—</option>
-              {CATEGORIES.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
+              {GROUPED.map((g) => (
+                <optgroup key={g.group} label={g.group}>
+                  {g.items.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.label}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>

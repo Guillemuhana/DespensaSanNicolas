@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { CATEGORIES } from '../lib/categories'
+import { GROUPED } from '../lib/categories'
 
 const inputClass =
   'w-full rounded-lg border border-line bg-surface px-3 py-2 transition-colors focus:border-awning focus:outline-none'
@@ -97,10 +97,14 @@ export default function QuickProductModal({ barcode, onCreate, onCancel }) {
               className={inputClass}
             >
               <option value="">—</option>
-              {CATEGORIES.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
+              {GROUPED.map((g) => (
+                <optgroup key={g.group} label={g.group}>
+                  {g.items.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.label}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>
