@@ -24,16 +24,16 @@ on conflict (id) do update
 -- porque es un solo local con un solo usuario. Acotado a este bucket.
 drop policy if exists "fotos productos ver" on storage.objects;
 create policy "fotos productos ver" on storage.objects
-  for select using (bucket_id = 'productos');
+  for select to public using (bucket_id = 'productos');
 
 drop policy if exists "fotos productos subir" on storage.objects;
 create policy "fotos productos subir" on storage.objects
-  for insert with check (bucket_id = 'productos');
+  for insert to public with check (bucket_id = 'productos');
 
 drop policy if exists "fotos productos reemplazar" on storage.objects;
 create policy "fotos productos reemplazar" on storage.objects
-  for update using (bucket_id = 'productos') with check (bucket_id = 'productos');
+  for update to public using (bucket_id = 'productos') with check (bucket_id = 'productos');
 
 drop policy if exists "fotos productos borrar" on storage.objects;
 create policy "fotos productos borrar" on storage.objects
-  for delete using (bucket_id = 'productos');
+  for delete to public using (bucket_id = 'productos');

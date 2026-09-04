@@ -12,6 +12,7 @@ import { resizeImage } from '../lib/image'
 import RestockModal from '../components/RestockModal'
 import CameraScanner from '../components/CameraScanner'
 import { cameraAvailable } from '../lib/camera'
+import { friendlyError } from '../lib/friendlyError'
 import { Camera, ImagePlus, ScanBarcode, X } from 'lucide-react'
 import { GROUPED, labelOf } from '../lib/categories'
 
@@ -57,7 +58,7 @@ export default function Stock() {
       // selector de proveedor simplemente no se muestra.
       setSuppliers(await fetchSuppliers().catch(() => []))
     } catch (err) {
-      setStatus({ type: 'error', text: err.message })
+      setStatus({ type: 'error', text: friendlyError(err.message, 'products') })
     }
   }
 
@@ -128,7 +129,10 @@ export default function Stock() {
       const url = await uploadProductPhoto(blob)
       setForm((f) => ({ ...f, image_url: url }))
     } catch (err) {
-      setStatus({ type: 'error', text: 'No se pudo subir la foto: ' + err.message })
+      setStatus({
+        type: 'error',
+        text: 'No se pudo subir la foto: ' + friendlyError(err.message, 'products'),
+      })
     } finally {
       setPhotoBusy(false)
     }
@@ -162,7 +166,7 @@ export default function Stock() {
       resetForm()
       load()
     } catch (err) {
-      setStatus({ type: 'error', text: err.message })
+      setStatus({ type: 'error', text: friendlyError(err.message, 'products') })
     }
   }
 

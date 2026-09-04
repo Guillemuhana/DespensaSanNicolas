@@ -162,6 +162,21 @@ export async function addAccountMovement(movement) {
 // ---------- Ventas ----------
 
 export async function createSale({ items, paymentMethod, customerId, total, paidAmount, changeDue }) {
+  const productIds = [...new Set(items.map((item) => item.id).filter(Boolean))]
+  const { data: existingProducts, error: productsErr } = await supabase
+    .from('products')
+    .select('id, name')
+    .in('id', productIds)
+  if (productsErr) throw productsErr
+
+  const existingIds = new Set(existingProducts.map((product) => product.id))
+  const missingItem = items.find((item) => !existingIds.has(item.id))
+  if (missingItem) {
+    throw new Error(
+      `El producto "${missingItem.name}" ya no existe en Stock. Quitalo del ticket y volvelo a cargar.`
+    )
+  }
+
   // Lo que costó comprar lo que se vendió: total - costTotal es la ganancia.
   const costTotal = items.reduce((s, it) => s + (Number(it.cost) || 0) * Number(it.quantity), 0)
 

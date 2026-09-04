@@ -4,14 +4,19 @@
  * traducimos ese caso a algo que diga qué hay que hacer.
  */
 const MISSING = /schema cache|does not exist|could not find/i
+const BLOCKED = /row-level security|permission denied|not authorized/i
 
 const SCRIPTS = {
+  products: 'supabase/006_solo_con_sesion.sql',
   expenses: 'supabase/002_costos_y_gastos.sql',
   suppliers: 'supabase/003_proveedores_y_recordatorios.sql',
   reminders: 'supabase/003_proveedores_y_recordatorios.sql',
 }
 
 export function friendlyError(message, table) {
+  if (BLOCKED.test(String(message))) {
+    return `Supabase está bloqueando el acceso a ${table}. Hay que correr el script supabase/006_solo_con_sesion.sql en el SQL Editor de Supabase.`
+  }
   if (MISSING.test(message)) {
     const script = SCRIPTS[table]
     return script
