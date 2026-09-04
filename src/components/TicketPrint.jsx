@@ -26,11 +26,11 @@ export default function TicketPrint({ sale }) {
     <div className="ticket-sheet">
       <div style={{ textAlign: 'center', marginBottom: '6px' }}>
         <img
-          src="/logo.png"
+          src="/logo.jpeg"
           alt=""
-          style={{ width: '38mm', height: 'auto', margin: '0 auto 4px' }}
+          style={{ width: '24mm', height: 'auto', margin: '0 auto 4px' }}
         />
-        <div style={{ fontWeight: 700, fontSize: '13px' }}>DESPENSA SAN NICOLÁS</div>
+        <div style={{ fontWeight: 700, fontSize: '13px' }}>FIRENZE STORE</div>
         <div style={{ fontSize: '10px' }}>Comprobante no válido como factura</div>
       </div>
 

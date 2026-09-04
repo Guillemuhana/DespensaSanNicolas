@@ -1,4 +1,4 @@
-# Despensa San Nicolás
+# Firenze Store
 
 App de punto de venta para un negocio de despensa: facturación con código de
 barras, control de stock (incluye productos por peso) y cuentas corrientes.

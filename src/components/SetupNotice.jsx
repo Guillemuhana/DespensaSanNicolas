@@ -3,11 +3,11 @@ export default function SetupNotice() {
     <div className="flex min-h-screen items-center justify-center bg-paper p-4 sm:p-6">
       <div className="w-full max-w-lg rounded-2xl border border-line bg-surface p-6 shadow-lift sm:p-8">
         <img
-          src="/logo.png"
-          alt="Despensa San Nicolás"
-          width="528"
-          height="420"
-          className="mb-6 h-24 w-auto"
+          src="/logo.jpeg"
+          alt="Firenze Store"
+          width="1254"
+          height="1254"
+          className="mb-6 h-24 w-auto rounded-full"
         />
         <p className="eyebrow text-brick">Configuración pendiente</p>
         <h1 className="mt-1.5 font-display text-xl font-semibold text-ink sm:text-2xl">

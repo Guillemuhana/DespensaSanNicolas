@@ -194,9 +194,9 @@ export default function App() {
             </button>
 
             <img
-              src="/logo.png"
-              alt="Despensa San Nicolás"
-              className="h-14 w-auto shrink-0 sm:h-16 lg:hidden"
+              src="/logo.jpeg"
+              alt="Firenze Store"
+              className="h-14 w-auto shrink-0 rounded-full sm:h-16 lg:hidden"
             />
 
             <div className="hidden min-w-0 lg:block">
@@ -284,16 +284,16 @@ function Sidebar({ tab, go, collapsed, onToggle, onClose, layoutId, className = 
       >
         <h1 className="flex min-w-0 items-center">
           <img
-            src="/logo.png"
+            src="/logo.jpeg"
             alt=""
-            width="528"
-            height="420"
-            className={`w-auto select-none transition-all duration-300 ${
+            width="1254"
+            height="1254"
+            className={`w-auto select-none rounded-full transition-all duration-300 ${
               expanded ? 'h-28' : 'h-11'
             }`}
             draggable="false"
           />
-          <span className="sr-only">Despensa San Nicolás</span>
+          <span className="sr-only">Firenze Store</span>
         </h1>
 
         {onToggle && (
@@ -366,7 +366,7 @@ function Sidebar({ tab, go, collapsed, onToggle, onClose, layoutId, className = 
         {expanded ? (
           <>
             <p className="truncate font-display text-sm font-semibold text-ink">
-              Despensa San Nicolás
+              Firenze Store
             </p>
             <p className="mt-0.5 truncate text-xs text-inkfaint">{today}</p>
             <a
