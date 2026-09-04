@@ -10,12 +10,14 @@ import {
   Printer,
   ReceiptText,
   ScanBarcode,
+  LogOut,
   Truck,
   Wallet,
   X,
 } from 'lucide-react'
-import { isSupabaseConfigured } from './lib/supabaseClient'
+import { isSupabaseConfigured, supabase } from './lib/supabaseClient'
 import SetupNotice from './components/SetupNotice'
+import Login from './components/Login'
 import PrintHeader from './components/PrintHeader'
 import Dashboard from './pages/Dashboard'
 import POS from './pages/POS'
@@ -95,6 +97,7 @@ const TABS = [
 const COLLAPSED_KEY = 'firenze:menu-plegado'
 
 export default function App() {
+  const [session, setSession] = useState(undefined)
   const [tab, setTab] = useState('pos')
   const [menuOpen, setMenuOpen] = useState(false)
   // El menú plegado se recuerda entre sesiones: cada uno trabaja como quiere.
@@ -105,6 +108,15 @@ export default function App() {
       return false
     }
   })
+
+  // La sesión la guarda supabase-js en localStorage y la renueva sola; acá
+  // sólo escuchamos para saber si mostrar la app o la puerta.
+  useEffect(() => {
+    if (!isSupabaseConfigured) return
+    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
+    return () => sub.subscription.unsubscribe()
+  }, [])
 
   useEffect(() => {
     try {
@@ -124,6 +136,9 @@ export default function App() {
   }, [menuOpen])
 
   if (!isSupabaseConfigured) return <SetupNotice />
+  // Mientras se resuelve la sesión no se muestra nada: es un parpadeo.
+  if (session === undefined) return <div className="min-h-screen bg-paper" />
+  if (!session) return <Login />
 
   const current = TABS.find((t) => t.id === tab) ?? TABS[0]
   const Page = current.Page
@@ -366,9 +381,23 @@ function Sidebar({ tab, go, collapsed, onToggle, onClose, layoutId, className = 
               Firenze Store
             </p>
             <p className="mt-0.5 truncate text-xs text-inkfaint">{today}</p>
+            <button
+              onClick={() => supabase.auth.signOut()}
+              className="mt-2.5 flex items-center gap-1.5 text-xs font-semibold text-inkfaint transition-colors hover:text-brick"
+            >
+              <LogOut size={13} strokeWidth={2.6} />
+              Salir
+            </button>
           </>
         ) : (
-          <span className="block font-display text-sm font-semibold text-ink">FS</span>
+          <button
+            onClick={() => supabase.auth.signOut()}
+            aria-label="Salir"
+            title="Salir"
+            className="mx-auto block rounded-lg p-2 text-inkfaint transition-colors hover:bg-paper2 hover:text-brick"
+          >
+            <LogOut size={18} strokeWidth={2.4} />
+          </button>
         )}
       </div>
     </aside>
