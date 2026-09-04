@@ -56,9 +56,7 @@ export default function TicketPrint({ sale }) {
               <td style={{ padding: '2px 0', verticalAlign: 'top' }}>
                 <div>{it.name}</div>
                 <div style={{ fontSize: '10px' }}>
-                  {it.saleType === 'weight'
-                    ? `${Number(it.quantity).toLocaleString('es-AR', { maximumFractionDigits: 3 })} kg x ${money(it.price)}`
-                    : `${it.quantity} x ${money(it.price)}`}
+                  {`${it.quantity} x ${money(it.price)}`}
                 </div>
               </td>
               <td

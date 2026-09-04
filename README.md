@@ -1,7 +1,7 @@
 # Firenze Store
 
-App de punto de venta para un negocio de despensa: facturación con código de
-barras, control de stock (incluye productos por peso) y cuentas corrientes.
+App de punto de venta para una tienda de ropa, carteras y accesorios:
+facturación con código de barras, control de stock y cuentas corrientes.
 
 ## Cómo funciona lo de "por peso"
 

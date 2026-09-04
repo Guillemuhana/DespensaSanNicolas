@@ -4,46 +4,49 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Fondo de papel, apenas cálido, para que el blanco de las tarjetas resalte.
-        paper: '#F7F4EE',
-        paper2: '#EFEAE0',
+        // Fondo crema rosado, el mismo aire del logo, para que el blanco de las
+        // tarjetas resalte sin cortar.
+        paper: '#FBF7F6',
+        paper2: '#F4EBE9',
         surface: '#FFFFFF',
-        line: '#E5DED2',
-        ink: '#171310',
-        inkfaint: '#6E675C',
-        // Los dos colores de la bolsa del logo.
+        line: '#EFE0DE',
+        ink: '#2A2220',
+        inkfaint: '#8A7472',
+        // Rosé gold del logo: es el color de acción (botones, links, activos).
+        // Conserva el nombre `awning` para no tocar los ~200 usos en la app.
         awning: {
-          50: '#EEF6FC',
-          100: '#D6EAF7',
-          200: '#A9D2ED',
-          400: '#4A9AD4',
-          DEFAULT: '#086AB3',
-          dark: '#054E85',
-          900: '#043A63',
+          50: '#FCF4F3',
+          100: '#F6E3E1',
+          200: '#EBC7C3',
+          400: '#D09E99',
+          DEFAULT: '#B87B76',
+          dark: '#9A5F5B',
+          900: '#6E403D',
         },
+        // Vino suave: alertas, faltantes y el botón de cobrar.
         brick: {
-          50: '#FDF0EF',
-          100: '#FADEDC',
-          200: '#F3B9B6',
-          light: '#E9827D',
-          DEFAULT: '#D52E28',
-          dark: '#A8221D',
+          50: '#FBF0F1',
+          100: '#F5DCDF',
+          200: '#E8BAC0',
+          light: '#C27F86',
+          DEFAULT: '#A65D63',
+          dark: '#83454B',
         },
       },
       fontFamily: {
-        display: ['"Poppins"', 'sans-serif'],
+        display: ['"Playfair Display"', 'Georgia', 'serif'],
         body: ['"Inter"', 'sans-serif'],
         mono: ['"IBM Plex Mono"', 'monospace'],
       },
       borderRadius: {
-        xl: '0.875rem',
-        '2xl': '1.125rem',
+        xl: '1rem',
+        '2xl': '1.375rem',
       },
       boxShadow: {
-        card: '0 1px 2px rgba(23, 19, 16, 0.04), 0 1px 3px rgba(23, 19, 16, 0.06)',
-        lift: '0 2px 4px rgba(23, 19, 16, 0.04), 0 8px 24px -6px rgba(23, 19, 16, 0.14)',
-        pop: '0 18px 48px -12px rgba(23, 19, 16, 0.32)',
-        pay: '0 1px 2px rgba(168, 34, 29, 0.28), 0 10px 22px -8px rgba(168, 34, 29, 0.55)',
+        card: '0 1px 2px rgba(42, 34, 32, 0.04), 0 1px 3px rgba(42, 34, 32, 0.06)',
+        lift: '0 2px 4px rgba(42, 34, 32, 0.04), 0 8px 24px -6px rgba(42, 34, 32, 0.12)',
+        pop: '0 18px 48px -12px rgba(42, 34, 32, 0.26)',
+        pay: '0 1px 2px rgba(166, 93, 99, 0.24), 0 10px 22px -8px rgba(166, 93, 99, 0.45)',
       },
       keyframes: {
         rise: {

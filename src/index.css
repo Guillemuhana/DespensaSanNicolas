@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -16,8 +16,8 @@ body,
 
 body {
   margin: 0;
-  background: #F7F4EE;
-  color: #171310;
+  background: #FBF7F6;
+  color: #2A2220;
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -25,12 +25,12 @@ body {
 }
 
 ::selection {
-  background: #086AB3;
+  background: #B87B76;
   color: #FFFFFF;
 }
 
 :focus-visible {
-  outline: 2px solid #086AB3;
+  outline: 2px solid #B87B76;
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -58,7 +58,7 @@ input {
 
 /* Volante del ticket: el borde dentado de un papel cortado. */
 .receipt-edge {
-  background-image: radial-gradient(circle at 8px 0, transparent 8px, #EFEAE0 8.5px);
+  background-image: radial-gradient(circle at 8px 0, transparent 8px, #F4EBE9 8.5px);
   background-size: 20px 16px;
   background-position: top;
   background-repeat: repeat-x;
@@ -77,13 +77,13 @@ input {
 /* Barras de scroll discretas, que no rompan la estética del panel. */
 .scroll-soft {
   scrollbar-width: thin;
-  scrollbar-color: #D8D0C2 transparent;
+  scrollbar-color: #E3CFCC transparent;
 }
 .scroll-soft::-webkit-scrollbar {
   width: 8px;
 }
 .scroll-soft::-webkit-scrollbar-thumb {
-  background: #D8D0C2;
+  background: #E3CFCC;
   border-radius: 999px;
 }
 .scroll-soft::-webkit-scrollbar-track {

@@ -8,7 +8,6 @@ import {
   createProduct,
 } from '../lib/queries'
 import Receipt from '../components/Receipt'
-import WeightEntry from '../components/WeightEntry'
 import PaymentModal from '../components/PaymentModal'
 import QuickProductModal from '../components/QuickProductModal'
 import TicketPrint from '../components/TicketPrint'
@@ -23,7 +22,6 @@ export default function POS() {
   const [items, setItems] = useState([])
   const [products, setProducts] = useState([])
   const [customers, setCustomers] = useState([])
-  const [pendingWeightProduct, setPendingWeightProduct] = useState(null)
   const [showPayment, setShowPayment] = useState(false)
   const [status, setStatus] = useState(null) // { type: 'error'|'success', text }
   const [lastSale, setLastSale] = useState(null)
@@ -44,7 +42,7 @@ export default function POS() {
   // El lector sigue funcionando aunque el foco se haya ido del campo, salvo
   // que haya un modal abierto: ahí el escaneo no debe agregar nada por detrás.
   useBarcodeScanner(processCode, {
-    enabled: !showPayment && !pendingWeightProduct && !quickProduct && !showCamera,
+    enabled: !showPayment && !quickProduct && !showCamera,
   })
 
   async function loadData() {
@@ -61,7 +59,7 @@ export default function POS() {
 
   function addUnitItem(product) {
     setItems((prev) => {
-      const idx = prev.findIndex((it) => it.id === product.id && it.saleType === 'unit')
+      const idx = prev.findIndex((it) => it.id === product.id)
       if (idx >= 0) {
         const copy = [...prev]
         copy[idx] = {
@@ -77,7 +75,6 @@ export default function POS() {
         {
           id: product.id,
           name: product.name,
-          saleType: 'unit',
           quantity: 1,
           price: product.price,
           cost: Number(product.cost) || 0,
@@ -85,22 +82,6 @@ export default function POS() {
         },
       ]
     })
-  }
-
-  function addWeightItem(product, { quantityKg, amount }) {
-    setItems((prev) => [
-      ...prev,
-      {
-        id: product.id,
-        name: product.name,
-        saleType: 'weight',
-        quantity: quantityKg,
-        price: product.price,
-        cost: Number(product.cost) || 0,
-        subtotal: amount,
-      },
-    ])
-    setPendingWeightProduct(null)
   }
 
   function removeItem(idx) {
@@ -160,12 +141,8 @@ export default function POS() {
     }
   }
 
-  // Lo manda al ticket, o abre el teclado de peso si se vende por kilo.
+  // Lo manda derecho al ticket.
   function addProduct(p) {
-    if (p.sale_type === 'weight') {
-      setPendingWeightProduct(p)
-      return { outcome: 'modal', name: p.name }
-    }
     if (Number(p.stock) <= 0) {
       setStatus({ type: 'error', text: `"${p.name}" no tiene stock.` })
       return { outcome: 'nostock', name: p.name }
@@ -175,7 +152,7 @@ export default function POS() {
   }
 
   // La cámara queda abierta mientras se sigan agregando cosas al ticket;
-  // cualquier otra cosa (peso, sin stock, código nuevo) necesita la pantalla.
+  // cualquier otra cosa (sin stock, código nuevo) necesita la pantalla.
   async function handleCameraScan(code) {
     const res = await processCode(code)
     if (res?.outcome === 'added') {
@@ -202,13 +179,8 @@ export default function POS() {
     setQuickProduct(null)
     setUnknownCode(null)
     setBarcode('')
-    if (product.sale_type === 'weight') {
-      setPendingWeightProduct(product)
-      setStatus({ type: 'success', text: `"${product.name}" quedó cargado.` })
-    } else {
-      addUnitItem(product)
-      setStatus({ type: 'success', text: `"${product.name}" quedó cargado y va en el ticket.` })
-    }
+    addUnitItem(product)
+    setStatus({ type: 'success', text: `"${product.name}" quedó cargado y va en el ticket.` })
     inputRef.current?.focus()
   }
 
@@ -443,24 +415,13 @@ export default function POS() {
                         </span>
                         <span className="shrink-0 font-mono tabular text-sm font-semibold text-ink">
                           ${Number(p.price).toLocaleString('es-AR')}
-                          {p.sale_type === 'weight' && (
-                            <span className="text-[11px] font-normal text-inkfaint">/kg</span>
-                          )}
                         </span>
                         <span
                           className={`w-[4.5rem] shrink-0 rounded-full px-2 py-0.5 text-center font-mono text-[11px] font-semibold ${
-                            out
-                              ? 'bg-brick-50 text-brick-dark'
-                              : p.sale_type === 'weight'
-                                ? 'bg-awning-50 text-awning-dark'
-                                : 'bg-paper2 text-inkfaint'
+                            out ? 'bg-brick-50 text-brick-dark' : 'bg-paper2 text-inkfaint'
                           }`}
                         >
-                          {out
-                            ? 'sin st.'
-                            : p.sale_type === 'weight'
-                              ? 'por kg'
-                              : `${Number(p.stock).toLocaleString('es-AR')} un.`}
+                          {out ? 'sin st.' : `${Number(p.stock).toLocaleString('es-AR')} un.`}
                         </span>
                       </button>
                     </li>
@@ -493,13 +454,6 @@ export default function POS() {
         </div>
       </div>
 
-      {pendingWeightProduct && (
-        <WeightEntry
-          product={pendingWeightProduct}
-          onConfirm={(payload) => addWeightItem(pendingWeightProduct, payload)}
-          onCancel={() => setPendingWeightProduct(null)}
-        />
-      )}
 
       <TicketPrint sale={lastSale} />
 

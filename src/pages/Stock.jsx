@@ -268,7 +268,6 @@ export default function Stock() {
                   </div>
                   <p className="shrink-0 font-mono tabular font-semibold text-ink">
                     ${Number(p.price).toLocaleString('es-AR')}
-                    {p.sale_type === 'weight' ? ' /kg' : ''}
                   </p>
                 </div>
                 <div className="mt-2.5 flex items-center justify-between gap-3 border-t border-line pt-2.5">
@@ -277,8 +276,7 @@ export default function Stock() {
                       low ? 'bg-brick-50 text-brick-dark' : 'bg-paper2 text-inkfaint'
                     }`}
                   >
-                    {Number(p.stock).toLocaleString('es-AR', { maximumFractionDigits: 3 })}
-                    {p.sale_type === 'weight' ? ' kg' : ' un.'}
+                    {Number(p.stock).toLocaleString('es-AR')} un.
                     {low ? ' · bajo' : ''}
                   </span>
                   <span className="flex shrink-0 gap-4">
@@ -348,9 +346,6 @@ export default function Stock() {
                     </td>
                     <td className="whitespace-nowrap px-5 py-3 font-mono tabular font-medium">
                       ${Number(p.price).toLocaleString('es-AR')}
-                      {p.sale_type === 'weight' ? (
-                        <span className="text-xs font-normal text-inkfaint"> /kg</span>
-                      ) : null}
                     </td>
                     <td className="whitespace-nowrap px-5 py-3 font-mono tabular text-sm">
                       {Number(p.cost) > 0 ? (
@@ -367,8 +362,7 @@ export default function Stock() {
                           low ? 'bg-brick-50 text-brick-dark' : 'bg-paper2 text-inkfaint'
                         }`}
                       >
-                        {Number(p.stock).toLocaleString('es-AR', { maximumFractionDigits: 3 })}
-                        {p.sale_type === 'weight' ? ' kg' : ' un.'}
+                        {Number(p.stock).toLocaleString('es-AR')} un.
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-5 py-3 text-right">
@@ -550,32 +544,10 @@ export default function Stock() {
               </p>
             )}
           </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-inkfaint">Se vende por</label>
-            <div className="flex gap-1 rounded-lg bg-paper2 p-1">
-              {[
-                { id: 'unit', label: 'Unidad' },
-                { id: 'weight', label: 'Peso (kg)' },
-              ].map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => setForm({ ...form, sale_type: opt.id })}
-                  className={`flex-1 rounded-md py-1.5 text-sm font-semibold transition-all ${
-                    form.sale_type === opt.id
-                      ? 'bg-surface text-ink shadow-card'
-                      : 'text-inkfaint hover:text-ink'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label htmlFor="prod-price" className="mb-1.5 block text-xs font-semibold text-inkfaint">
-                Precio {form.sale_type === 'weight' ? '/kg' : ''}
+                Precio
               </label>
               <input
                 required
@@ -590,12 +562,12 @@ export default function Stock() {
             </div>
             <div>
               <label htmlFor="prod-stock" className="mb-1.5 block text-xs font-semibold text-inkfaint">
-                Stock {form.sale_type === 'weight' ? '(kg)' : '(un.)'}
+                Stock (un.)
               </label>
               <input
                 required
                 type="number"
-                step="0.001"
+                step="1"
                 min="0"
                 id="prod-stock"
                 value={form.stock}
@@ -606,7 +578,7 @@ export default function Stock() {
           </div>
           <div>
             <label htmlFor="prod-cost" className="mb-1.5 block text-xs font-semibold text-inkfaint">
-              Costo de compra {form.sale_type === 'weight' ? '/kg' : ''}
+              Costo de compra
             </label>
             <input
               type="number"
@@ -623,7 +595,7 @@ export default function Stock() {
                 <span className="font-mono tabular font-semibold text-ink">
                   ${margin.profit.toLocaleString('es-AR', { maximumFractionDigits: 2 })}
                 </span>{' '}
-                por {form.sale_type === 'weight' ? 'kilo' : 'unidad'} ·{' '}
+                por unidad ·{' '}
                 <span
                   className={`font-semibold ${margin.pct >= 0 ? 'text-awning' : 'text-brick'}`}
                 >

@@ -19,10 +19,12 @@ const grow = (delay = 0) => ({
   transition: { duration: 0.35, ease: EASE, delay },
 })
 
-// Los dos colores de la marca. Validados para daltonismo como par categórico
-// (ΔE 20.9 en protanopía), así que alcanzan para separar efectivo de fiado.
-const CASH = '#086AB3'
-const ACCOUNT = '#D52E28'
+// Los dos colores de la marca. Como el rosé y el vino de la paleta son
+// vecinos, el par se separa por luminosidad y no por tono: ΔL* 24 y ΔE 25
+// hasta en protanopía. Eso además aguanta la impresión en escala de grises,
+// que es donde el par azul/rojo anterior se venía abajo (ΔL* 3.6).
+const CASH = '#B87B76'
+const ACCOUNT = '#5C4A54'
 
 const DAYS_WINDOW = 35
 const money = (n, max = 0) =>
@@ -641,8 +643,7 @@ function LowStock({ products }) {
             <li key={p.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
               <span className="min-w-0 truncate font-medium text-ink">{p.name}</span>
               <span className="shrink-0 rounded-full bg-brick-50 px-2.5 py-1 font-mono tabular text-xs font-semibold text-brick-dark">
-                {Number(p.stock).toLocaleString('es-AR', { maximumFractionDigits: 3 })}
-                {p.sale_type === 'weight' ? ' kg' : ' un.'}
+                {Number(p.stock).toLocaleString('es-AR')} un.
                 <span className="font-normal text-brick-dark/70">
                   {' '}
                   / mín {Number(p.min_stock).toLocaleString('es-AR')}

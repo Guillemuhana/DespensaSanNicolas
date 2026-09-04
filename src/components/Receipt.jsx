@@ -2,7 +2,7 @@ import { Minus, Plus, X } from 'lucide-react'
 
 export default function Receipt({ items, onRemove, onChangeQty, total }) {
   const count = items.length
-  const units = items.reduce((n, it) => n + (it.saleType === 'unit' ? it.quantity : 1), 0)
+  const units = items.reduce((n, it) => n + it.quantity, 0)
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-lift">
@@ -45,15 +45,12 @@ export default function Receipt({ items, onRemove, onChangeQty, total }) {
                 <div className="min-w-0">
                   <p className="truncate font-medium leading-snug text-ink">{it.name}</p>
                   <p className="font-mono tabular text-xs text-inkfaint">
-                    {it.saleType === 'weight'
-                      ? `${it.quantity.toLocaleString('es-AR', { maximumFractionDigits: 3 })} kg × $${it.price.toLocaleString('es-AR')}`
-                      : `$${it.price.toLocaleString('es-AR')} c/u`}
+                    {`$${it.price.toLocaleString('es-AR')} c/u`}
                   </p>
                 </div>
 
                 <div className="flex shrink-0 items-center gap-2.5">
-                  {/* Los de peso se cargan por importe: no tienen +/-. */}
-                  {it.saleType === 'unit' && onChangeQty && (
+                  {onChangeQty && (
                     <div className="flex items-center gap-0.5 rounded-lg bg-paper2 p-0.5">
                       <button
                         onClick={() => onChangeQty(idx, -1)}

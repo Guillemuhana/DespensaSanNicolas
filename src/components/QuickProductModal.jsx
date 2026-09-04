@@ -25,7 +25,6 @@ export default function QuickProductModal({ barcode, onCreate, onCancel }) {
     nameRef.current?.focus()
   }, [])
 
-  const isWeight = form.sale_type === 'weight'
   const priceNum = Number(form.price) || 0
 
   async function handleSubmit(e) {
@@ -79,38 +78,15 @@ export default function QuickProductModal({ barcode, onCreate, onCancel }) {
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="Ej. Yerba 1 kg"
+              placeholder="Ej. Camisa lino blanca S"
               className={inputClass}
             />
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-inkfaint">Se vende por</label>
-            <div className="flex gap-1 rounded-lg bg-paper2 p-1">
-              {[
-                { id: 'unit', label: 'Unidad' },
-                { id: 'weight', label: 'Peso (kg)' },
-              ].map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => setForm({ ...form, sale_type: opt.id })}
-                  className={`flex-1 rounded-md py-1.5 text-sm font-semibold transition-all ${
-                    form.sale_type === opt.id
-                      ? 'bg-surface text-ink shadow-card'
-                      : 'text-inkfaint hover:text-ink'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label htmlFor="quick-price" className="mb-1.5 block text-xs font-semibold text-inkfaint">
-                Precio {isWeight ? '/kg' : ''}
+                Precio
               </label>
               <input
                 id="quick-price"
@@ -126,13 +102,13 @@ export default function QuickProductModal({ barcode, onCreate, onCancel }) {
             </div>
             <div>
               <label htmlFor="quick-stock" className="mb-1.5 block text-xs font-semibold text-inkfaint">
-                Stock {isWeight ? '(kg)' : '(un.)'}
+                Stock (un.)
               </label>
               <input
                 id="quick-stock"
                 type="number"
-                inputMode="decimal"
-                step="0.001"
+                inputMode="numeric"
+                step="1"
                 min="0"
                 value={form.stock}
                 onChange={(e) => setForm({ ...form, stock: e.target.value })}
@@ -144,7 +120,7 @@ export default function QuickProductModal({ barcode, onCreate, onCancel }) {
 
           <div>
             <label htmlFor="quick-cost" className="mb-1.5 block text-xs font-semibold text-inkfaint">
-              Costo de compra {isWeight ? '/kg' : ''} <span className="font-normal">(opcional)</span>
+              Costo de compra <span className="font-normal">(opcional)</span>
             </label>
             <input
               id="quick-cost"

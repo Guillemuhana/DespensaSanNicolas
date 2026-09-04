@@ -20,8 +20,6 @@ export default function RestockModal({ product, suppliers = [], canCost, onConfi
     inputRef.current?.focus()
   }, [])
 
-  const isWeight = product.sale_type === 'weight'
-  const unit = isWeight ? 'kg' : 'un.'
   const qtyNum = Number(qty) || 0
   const costNum = Number(cost) || 0
   const newStock = Number(product.stock) + qtyNum
@@ -53,20 +51,20 @@ export default function RestockModal({ product, suppliers = [], canCost, onConfi
         <p className="mt-1 text-sm text-inkfaint">
           Hay{' '}
           <span className="font-mono tabular">
-            {Number(product.stock).toLocaleString('es-AR', { maximumFractionDigits: 3 })} {unit}
+            {Number(product.stock).toLocaleString('es-AR')} un.
           </span>{' '}
           en stock
         </p>
 
         <label htmlFor="restock-qty" className="mb-1.5 mt-5 block text-xs font-semibold text-inkfaint">
-          ¿Cuánto entró? ({unit})
+          ¿Cuánto entró? (un.)
         </label>
         <input
           id="restock-qty"
           ref={inputRef}
           type="number"
           inputMode="decimal"
-          step={isWeight ? '0.001' : '1'}
+          step="1"
           min="0"
           value={qty}
           onChange={(e) => setQty(e.target.value)}
@@ -77,7 +75,7 @@ export default function RestockModal({ product, suppliers = [], canCost, onConfi
         {canCost && (
           <div className="mt-3.5">
             <label htmlFor="restock-cost" className="mb-1.5 block text-xs font-semibold text-inkfaint">
-              Costo por {isWeight ? 'kilo' : 'unidad'} (opcional)
+              Costo por unidad (opcional)
             </label>
             <input
               id="restock-cost"
@@ -116,7 +114,7 @@ export default function RestockModal({ product, suppliers = [], canCost, onConfi
           <div className="flex items-center justify-between">
             <span className="text-inkfaint">Stock queda en</span>
             <span className="font-mono tabular text-lg font-bold text-ink">
-              {newStock.toLocaleString('es-AR', { maximumFractionDigits: 3 })} {unit}
+              {newStock.toLocaleString('es-AR')} un.
             </span>
           </div>
           {invoice > 0 && (

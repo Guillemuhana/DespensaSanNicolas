@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import {
   Bell,
-  ExternalLink,
   LayoutDashboard,
   Menu,
   Package,
@@ -17,7 +16,6 @@ import {
 } from 'lucide-react'
 import { isSupabaseConfigured } from './lib/supabaseClient'
 import SetupNotice from './components/SetupNotice'
-import DemoNotice, { QUOTE_URL } from './components/DemoNotice'
 import PrintHeader from './components/PrintHeader'
 import Dashboard from './pages/Dashboard'
 import POS from './pages/POS'
@@ -94,7 +92,7 @@ const TABS = [
   },
 ]
 
-const COLLAPSED_KEY = 'despensa:menu-plegado'
+const COLLAPSED_KEY = 'firenze:menu-plegado'
 
 export default function App() {
   const [tab, setTab] = useState('pos')
@@ -222,7 +220,6 @@ export default function App() {
 
         <main className="px-4 py-5 sm:px-6 sm:py-7">
           <PrintHeader title={current.title} />
-          <DemoNotice />
           <AnimatePresence mode="wait">
             <motion.div
               key={tab}
@@ -278,18 +275,18 @@ function Sidebar({ tab, go, collapsed, onToggle, onClose, layoutId, className = 
       } ${hovering ? 'shadow-pop' : ''} ${className}`}
     >
       <div
-        className={`flex items-center gap-2 pb-4 pt-5 ${
-          expanded ? 'justify-between px-5 pt-6' : 'flex-col px-2'
+        className={`relative flex items-center gap-2 pb-4 pt-5 ${
+          expanded ? 'justify-center px-5 pt-7' : 'flex-col px-2'
         }`}
       >
-        <h1 className="flex min-w-0 items-center">
+        <h1 className="flex min-w-0 items-center justify-center">
           <img
             src="/logo.jpeg"
             alt=""
             width="1254"
             height="1254"
             className={`w-auto select-none rounded-full transition-all duration-300 ${
-              expanded ? 'h-28' : 'h-11'
+              expanded ? 'h-40' : 'h-14'
             }`}
             draggable="false"
           />
@@ -301,7 +298,7 @@ function Sidebar({ tab, go, collapsed, onToggle, onClose, layoutId, className = 
             onClick={onToggle}
             aria-label={collapsed ? 'Fijar el menú abierto' : 'Plegar el menú'}
             title={collapsed ? 'Fijar el menú abierto' : 'Plegar el menú'}
-            className="shrink-0 rounded-lg p-2 text-inkfaint transition-colors hover:bg-paper2 hover:text-ink"
+            className="absolute right-3 top-6 shrink-0 rounded-lg p-2 text-inkfaint transition-colors hover:bg-paper2 hover:text-ink"
           >
             {collapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}
           </button>
@@ -311,7 +308,7 @@ function Sidebar({ tab, go, collapsed, onToggle, onClose, layoutId, className = 
           <button
             onClick={onClose}
             aria-label="Cerrar menú"
-            className="shrink-0 rounded-lg p-2 text-inkfaint transition-colors hover:bg-paper2 hover:text-ink"
+            className="absolute right-3 top-6 shrink-0 rounded-lg p-2 text-inkfaint transition-colors hover:bg-paper2 hover:text-ink"
           >
             <X size={20} />
           </button>
@@ -369,34 +366,9 @@ function Sidebar({ tab, go, collapsed, onToggle, onClose, layoutId, className = 
               Firenze Store
             </p>
             <p className="mt-0.5 truncate text-xs text-inkfaint">{today}</p>
-            <a
-              href={QUOTE_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="group mt-2.5 block transition-colors"
-            >
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-awning group-hover:text-awning-dark">
-                Aprovechá el 30% de descuento
-                <ExternalLink size={12} strokeWidth={2.6} className="shrink-0" />
-              </span>
-              <span className="mt-0.5 block text-[0.7rem] text-inkfaint">
-                Demo hasta el 31/08/2026
-              </span>
-            </a>
           </>
         ) : (
-          <a
-            href={QUOTE_URL}
-            target="_blank"
-            rel="noreferrer"
-            title="Demo hasta el 31/08/2026 · 30% de descuento en el presupuesto"
-            className="block font-display text-sm font-semibold text-ink transition-colors hover:text-awning"
-          >
-            SN
-            <span className="mt-1 block text-[0.6rem] font-semibold uppercase tracking-wider text-awning">
-              -30%
-            </span>
-          </a>
+          <span className="block font-display text-sm font-semibold text-ink">FS</span>
         )}
       </div>
     </aside>

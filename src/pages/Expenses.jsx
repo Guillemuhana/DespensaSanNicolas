@@ -5,7 +5,9 @@ import { fetchExpenses, createExpense, deleteExpense } from '../lib/queries'
 import { friendlyError } from '../lib/friendlyError'
 
 const CATEGORIES = [
-  { id: 'mercaderia', label: 'Mercadería' },
+  { id: 'temporada', label: 'Compra de temporada' },
+  { id: 'envios', label: 'Envíos y logística' },
+  { id: 'marketing', label: 'Marketing y redes' },
   { id: 'alquiler', label: 'Alquiler' },
   { id: 'servicios', label: 'Servicios' },
   { id: 'sueldos', label: 'Sueldos' },
@@ -24,7 +26,7 @@ export default function Expenses() {
   const [expenses, setExpenses] = useState([])
   const [form, setForm] = useState({
     description: '',
-    category: 'mercaderia',
+    category: 'temporada',
     amount: '',
     spent_on: todayInput(),
   })
@@ -55,7 +57,7 @@ export default function Expenses() {
         amount: Number(form.amount) || 0,
         spent_on: form.spent_on,
       })
-      setForm({ description: '', category: 'mercaderia', amount: '', spent_on: todayInput() })
+      setForm({ description: '', category: 'temporada', amount: '', spent_on: todayInput() })
       load()
     } catch (err) {
       setStatus(friendlyError(err.message, 'expenses'))

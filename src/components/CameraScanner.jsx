@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Zap, ZapOff } from 'lucide-react'
 
-// Formatos que se usan en góndola. QR va de yapa porque no cuesta nada.
+// Formatos de las etiquetas de indumentaria. QR va de yapa porque no cuesta nada.
 const FORMATS = [
   'ean_13',
   'ean_8',
