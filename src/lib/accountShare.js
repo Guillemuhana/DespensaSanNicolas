@@ -6,11 +6,11 @@
  * qué. Si nunca quedó en cero, van todos los movimientos.
  */
 
-const money = (n) =>
+export const money = (n) =>
   '$' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 
-const day = (iso) =>
-  new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
+export const fullDate = (d) =>
+  new Date(d).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
 /** Lo que se llevó en una venta fiada, desde el embed de fetchAccountMovements. */
 export function itemsOf(movement) {
@@ -37,29 +37,80 @@ export function openMovements(movements) {
   return asc.slice(start)
 }
 
+/**
+ * Los números de la cuenta abierta: cuánto fió, cuánto pagó, desde cuándo y
+ * cuándo fue el último pago. fiado - pagado + anterior da siempre el saldo;
+ * `anterior` sólo es distinto de cero si la última vez pagó de más y le quedó
+ * saldo a favor.
+ */
+export function accountSummary(movements, balance) {
+  const open = openMovements(movements)
+  let fiado = 0
+  let pagado = 0
+  let lastPayment = null
+  for (const m of open) {
+    if (m.type === 'charge') fiado += Number(m.amount)
+    else {
+      pagado += Number(m.amount)
+      lastPayment = m
+    }
+  }
+  const anterior = balance - (fiado - pagado)
+  return {
+    open,
+    fiado,
+    pagado,
+    anterior: Math.abs(anterior) > 0.005 ? anterior : 0,
+    since: open[0]?.created_at ?? null,
+    lastPayment,
+  }
+}
+
+/** "Saldo a favor anterior: −$1.000" si había pagado de más, "Saldo anterior: $500" si no. */
+export function anteriorLabel(anterior) {
+  return anterior < 0
+    ? `Saldo a favor anterior: −${money(-anterior)}`
+    : `Saldo anterior: ${money(anterior)}`
+}
+
+export function chargeLabel(m) {
+  // Los anotados a mano traen lo que se llevó en la nota; los de Facturación
+  // traen el detalle de productos aparte.
+  return m.note && m.note !== 'Fiado' && m.note !== 'Venta a cuenta' ? m.note : 'Fiado'
+}
+
 export function buildAccountMessage({ customer, movements, balance }) {
-  const lines = ['*El Baratillo* · Minimercado y carnicería', `Resumen de cuenta de *${customer.name}*`, '']
+  const lines = [
+    '*EL BARATILLO* · Minimercado y carnicería',
+    `Cuenta de *${customer.name}*`,
+    `Fecha: ${fullDate(new Date())}`,
+    '',
+  ]
 
   if (balance <= 0.005) {
-    lines.push('No tenés saldo pendiente. ¡Gracias!')
+    lines.push('✅ No tenés saldo pendiente. ¡Gracias!')
     return lines.join('\n')
   }
 
-  for (const m of openMovements(movements)) {
+  const sum = accountSummary(movements, balance)
+
+  lines.push('*Detalle*')
+  for (const m of sum.open) {
     if (m.type === 'charge') {
-      // Los anotados a mano traen lo que se llevó en la nota; los de
-      // Facturación traen el detalle abajo.
-      const custom = m.note && m.note !== 'Fiado' && m.note !== 'Venta a cuenta'
-      lines.push(`${day(m.created_at)} Fiado${custom ? ` (${m.note})` : ''} ${money(m.amount)}`)
+      lines.push(`${fullDate(m.created_at)}  ${chargeLabel(m)}  ${money(m.amount)}`)
       for (const it of itemsOf(m)) {
-        lines.push(`   · ${it.product_name} ${qtyLabel(it)} ${money(it.subtotal)}`)
+        lines.push(`      ${it.product_name} ${qtyLabel(it)} ${money(it.subtotal)}`)
       }
     } else {
-      lines.push(`${day(m.created_at)} Pago −${money(m.amount)}`)
+      lines.push(`${fullDate(m.created_at)}  Pago  −${money(m.amount)}`)
     }
   }
 
-  lines.push('', `*Saldo a pagar: ${money(balance)}*`, `Al ${new Date().toLocaleDateString('es-AR')}`)
+  lines.push('', '*Resumen*')
+  if (sum.anterior) lines.push(anteriorLabel(sum.anterior))
+  lines.push(`Total fiado: ${money(sum.fiado)}`)
+  lines.push(`Total pagado: ${money(sum.pagado)}`)
+  lines.push(`*SALDO A PAGAR: ${money(balance)}*`)
   return lines.join('\n')
 }
 

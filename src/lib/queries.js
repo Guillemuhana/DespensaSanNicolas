@@ -150,6 +150,16 @@ export async function fetchAccountMovements(customerId) {
   return data
 }
 
+// Todos los movimientos, sin detalle: alcanza para saldos, desde cuándo debe
+// cada uno y lo fiado/cobrado del mes.
+export async function fetchAllAccountMovements() {
+  const { data, error } = await supabase
+    .from('account_movements')
+    .select('customer_id, type, amount, note, created_at')
+  if (error) throw error
+  return data
+}
+
 export async function fetchAllBalances() {
   const { data, error } = await supabase
     .from('account_movements')

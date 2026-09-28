@@ -1,20 +1,34 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Check, Copy, MessageCircle, Pencil, Phone, Share2 } from 'lucide-react'
 import {
   fetchCustomers,
-  fetchAllBalances,
+  fetchAllAccountMovements,
   fetchAccountMovements,
   addAccountMovement,
   createCustomer,
   updateCustomer,
 } from '../lib/queries'
-import { buildAccountMessage, itemsOf, qtyLabel, whatsappUrl } from '../lib/accountShare'
+import {
+  accountSummary,
+  anteriorLabel,
+  buildAccountMessage,
+  chargeLabel,
+  fullDate,
+  itemsOf,
+  money,
+  qtyLabel,
+  whatsappUrl,
+} from '../lib/accountShare'
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000
+const daysSince = (iso) => Math.max(0, Math.floor((Date.now() - new Date(iso)) / MS_PER_DAY))
+const daysLabel = (n) => (n === 0 ? 'hoy' : n === 1 ? 'hace 1 día' : `hace ${n} días`)
 
 const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
 export default function Accounts() {
   const [customers, setCustomers] = useState([])
-  const [balances, setBalances] = useState({})
+  const [allMovements, setAllMovements] = useState([])
   const [selected, setSelected] = useState(null)
   const [movements, setMovements] = useState([])
   const [paymentAmount, setPaymentAmount] = useState('')
@@ -33,9 +47,9 @@ export default function Accounts() {
 
   async function load() {
     try {
-      const [c, b] = await Promise.all([fetchCustomers(), fetchAllBalances()])
+      const [c, m] = await Promise.all([fetchCustomers(), fetchAllAccountMovements()])
       setCustomers(c)
-      setBalances(b)
+      setAllMovements(m)
     } catch (err) {
       setStatus({ type: 'error', text: err.message })
     }
@@ -131,26 +145,83 @@ export default function Accounts() {
     }
   }
 
+  // Saldos, desde cuándo debe cada uno y los números del mes, todo de una
+  // pasada sobre los movimientos.
+  const { balances, owingSince, stats } = useMemo(() => {
+    const byCustomer = {}
+    for (const m of allMovements) (byCustomer[m.customer_id] ??= []).push(m)
+
+    const balances = {}
+    const owingSince = {}
+    for (const [id, list] of Object.entries(byCustomer)) {
+      const bal = list.reduce((s, m) => s + (m.type === 'charge' ? 1 : -1) * Number(m.amount), 0)
+      balances[id] = bal
+      if (bal > 0.005) owingSince[id] = accountSummary(list, bal).since
+    }
+
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    let fiadoMes = 0
+    let cobradoMes = 0
+    for (const m of allMovements) {
+      if (new Date(m.created_at) < monthStart) continue
+      if (m.type === 'charge') fiadoMes += Number(m.amount)
+      else cobradoMes += Number(m.amount)
+    }
+
+    const owing = Object.keys(owingSince)
+    const oldestId = owing.sort((a, b) => new Date(owingSince[a]) - new Date(owingSince[b]))[0]
+
+    return {
+      balances,
+      owingSince,
+      stats: {
+        totalDebt: owing.reduce((s, id) => s + balances[id], 0),
+        owingCount: owing.length,
+        fiadoMes,
+        cobradoMes,
+        oldestId,
+      },
+    }
+  }, [allMovements])
+
   const sortedCustomers = [...customers].sort(
     (a, b) => (balances[b.id] || 0) - (balances[a.id] || 0)
   )
-  const totalDebt = Object.values(balances).reduce((s, v) => s + Math.max(v, 0), 0)
-  const owingCount = Object.values(balances).filter((v) => v > 0).length
+  const oldest = customers.find((c) => c.id === stats.oldestId)
+  const monthName = new Date().toLocaleDateString('es-AR', { month: 'long' })
+  const summary = selected ? accountSummary(movements, balances[selected.id] || 0) : null
 
   return (
     <div className="grid gap-4 md:gap-6 md:grid-cols-[340px_1fr]">
-      <div>
-        <div className="mb-4 overflow-hidden rounded-2xl bg-awning p-5 text-white shadow-lift">
+      <div className="grid grid-cols-2 gap-3 md:col-span-2 lg:grid-cols-4">
+        <div className="col-span-2 rounded-2xl bg-awning p-4 text-white shadow-lift sm:p-5 lg:col-span-1">
           <p className="eyebrow text-white/70">Total a cobrar</p>
           <p className="mt-1.5 font-mono tabular text-3xl font-bold leading-none">
-            ${totalDebt.toLocaleString('es-AR', { maximumFractionDigits: 2 })}
+            {money(stats.totalDebt)}
           </p>
           <p className="mt-2 text-sm text-white/75">
-            {owingCount === 0
+            {stats.owingCount === 0
               ? 'Nadie debe nada'
-              : `${owingCount} ${owingCount === 1 ? 'cliente adeuda' : 'clientes adeudan'}`}
+              : `${stats.owingCount} ${stats.owingCount === 1 ? 'cliente debe' : 'clientes deben'}`}
           </p>
         </div>
+        <StatTile label={`Fiado en ${monthName}`} value={money(stats.fiadoMes)} tone="brick" />
+        <StatTile label={`Cobrado en ${monthName}`} value={money(stats.cobradoMes)} tone="awning" />
+        <StatTile
+          className="col-span-2 lg:col-span-1"
+          label="Deuda más vieja"
+          value={oldest ? oldest.name : '—'}
+          hint={
+            oldest
+              ? `${money(balances[oldest.id])} · desde ${fullDate(owingSince[oldest.id])} (${daysLabel(daysSince(owingSince[oldest.id]))})`
+              : 'Nadie debe nada'
+          }
+          onClick={oldest ? () => selectCustomer(oldest) : undefined}
+        />
+      </div>
+
+      <div>
 
         <form onSubmit={handleAddCustomer} className="mb-4 flex gap-2">
           <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -206,7 +277,15 @@ export default function Accounts() {
                         : 'border-transparent hover:bg-paper2/60'
                     }`}
                   >
-                    <span className="min-w-0 truncate font-medium text-ink">{c.name}</span>
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium text-ink">{c.name}</span>
+                      {owingSince[c.id] && (
+                        <span className="block text-xs text-inkfaint">
+                          Debe desde {fullDate(owingSince[c.id])} ·{' '}
+                          {daysLabel(daysSince(owingSince[c.id]))}
+                        </span>
+                      )}
+                    </span>
                     <span
                       className={`shrink-0 font-mono tabular text-sm font-semibold ${
                         bal > 0 ? 'text-brick' : 'text-inkfaint/70'
@@ -295,16 +374,30 @@ export default function Accounts() {
                   </button>
                 )}
               </div>
-              <div className="text-right">
-                <p className="eyebrow text-inkfaint">Saldo</p>
-                <span
-                  className={`font-mono tabular text-2xl font-bold sm:text-3xl ${
-                    (balances[selected.id] || 0) > 0 ? 'text-brick' : 'text-awning'
-                  }`}
-                >
-                  ${(balances[selected.id] || 0).toLocaleString('es-AR', { maximumFractionDigits: 2 })}
-                </span>
+            </div>
+
+            {/* Los mismos números que lleva el resumen que se le manda al
+                cliente: desde la última vez que la cuenta quedó en cero. */}
+            <div className="mb-5">
+              <div className="grid grid-cols-3 gap-2">
+                <MiniStat label="Total fiado" value={money(summary.fiado)} className="text-brick" />
+                <MiniStat label="Total pagado" value={money(summary.pagado)} className="text-awning" />
+                <MiniStat
+                  label="Saldo"
+                  value={money(balances[selected.id] || 0)}
+                  className={(balances[selected.id] || 0) > 0 ? 'text-brick' : 'text-awning'}
+                  strong
+                />
               </div>
+              <p className="mt-2 text-xs text-inkfaint">
+                {(balances[selected.id] || 0) > 0.005 && summary.since
+                  ? `Debe desde ${fullDate(summary.since)} (${daysLabel(daysSince(summary.since))})`
+                  : 'Está al día'}
+                {summary.anterior ? ` · ${anteriorLabel(summary.anterior)}` : ''}
+                {summary.lastPayment
+                  ? ` · Último pago ${fullDate(summary.lastPayment.created_at)}`
+                  : ''}
+              </p>
             </div>
 
             <div className="no-print mb-5 flex flex-wrap gap-2">
@@ -427,9 +520,11 @@ export default function Accounts() {
                     </span>
                     <div className="min-w-0">
                       <p className="truncate text-ink">
-                        {m.type === 'charge' && m.note === 'Venta a cuenta'
-                          ? 'Fiado'
-                          : m.note || (m.type === 'charge' ? 'Fiado' : 'Pago')}
+                        {m.type === 'charge'
+                          ? chargeLabel(m)
+                          : m.note && m.note !== 'Pago recibido'
+                            ? `Pago · ${m.note}`
+                            : 'Pago'}
                       </p>
                       {itemsOf(m).length > 0 && (
                         <p className="text-xs leading-snug text-inkfaint">
@@ -442,7 +537,7 @@ export default function Accounts() {
                         {new Date(m.created_at).toLocaleString('es-AR', {
                           day: '2-digit',
                           month: '2-digit',
-                          year: '2-digit',
+                          year: 'numeric',
                           hour: '2-digit',
                           minute: '2-digit',
                         })}
@@ -474,6 +569,45 @@ export default function Accounts() {
           {status.text}
         </div>
       )}
+    </div>
+  )
+}
+
+function StatTile({ label, value, hint, tone, onClick, className = '' }) {
+  const Tag = onClick ? 'button' : 'div'
+  return (
+    <Tag
+      onClick={onClick}
+      className={`min-w-0 rounded-2xl border border-line bg-surface p-4 text-left shadow-card ${
+        onClick ? 'transition-colors hover:border-awning' : ''
+      } ${className}`}
+    >
+      <p className="eyebrow truncate text-inkfaint">{label}</p>
+      <p
+        className={`mt-1.5 truncate text-xl font-bold leading-tight ${
+          tone === 'brick' ? 'font-mono tabular text-brick' : tone === 'awning' ? 'font-mono tabular text-awning' : 'text-ink'
+        }`}
+      >
+        {value}
+      </p>
+      {hint && <p className="mt-1 text-xs leading-snug text-inkfaint">{hint}</p>}
+    </Tag>
+  )
+}
+
+function MiniStat({ label, value, className = '', strong = false }) {
+  return (
+    <div className={`min-w-0 rounded-xl px-3 py-2.5 ${strong ? 'bg-brick-50/70' : 'bg-paper2/70'}`}>
+      <p className="truncate text-[0.7rem] font-semibold uppercase tracking-wide text-inkfaint">
+        {label}
+      </p>
+      <p
+        className={`mt-0.5 truncate font-mono tabular font-bold ${
+          strong ? 'text-lg sm:text-xl' : 'text-base sm:text-lg'
+        } ${className}`}
+      >
+        {value}
+      </p>
     </div>
   )
 }
