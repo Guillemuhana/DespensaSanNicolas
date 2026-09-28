@@ -11,23 +11,26 @@ export default {
         line: '#E5DED2',
         ink: '#171310',
         inkfaint: '#6E675C',
-        // Los dos colores de la bolsa del logo.
+        // Los dos colores del logo de El Baratillo. Los nombres `awning` y
+        // `brick` vienen de la marca anterior y se quedan para no tocar los
+        // cientos de usos: awning es el verde (acción, pagos), brick el rojo
+        // (deuda, faltantes, cobrar).
         awning: {
-          50: '#EEF6FC',
-          100: '#D6EAF7',
-          200: '#A9D2ED',
-          400: '#4A9AD4',
-          DEFAULT: '#086AB3',
-          dark: '#054E85',
-          900: '#043A63',
+          50: '#EEF8F1',
+          100: '#D5EDDC',
+          200: '#A8D5B5',
+          400: '#3E9A5E',
+          DEFAULT: '#07682D',
+          dark: '#035620',
+          900: '#023E17',
         },
         brick: {
-          50: '#FDF0EF',
-          100: '#FADEDC',
-          200: '#F3B9B6',
-          light: '#E9827D',
-          DEFAULT: '#D52E28',
-          dark: '#A8221D',
+          50: '#FDF0F0',
+          100: '#F9DADB',
+          200: '#F2B3B5',
+          light: '#E0575C',
+          DEFAULT: '#B5020A',
+          dark: '#8C0208',
         },
       },
       fontFamily: {

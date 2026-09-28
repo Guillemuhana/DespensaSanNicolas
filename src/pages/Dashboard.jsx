@@ -19,10 +19,12 @@ const grow = (delay = 0) => ({
   transition: { duration: 0.35, ease: EASE, delay },
 })
 
-// Los dos colores de la marca. Validados para daltonismo como par categórico
-// (ΔE 20.9 en protanopía), así que alcanzan para separar efectivo de fiado.
-const CASH = '#086AB3'
-const ACCOUNT = '#D52E28'
+// Verde y rojo son el par que peor distingue un daltónico, así que no alcanza
+// con los colores de la marca tal cual: el efectivo va en el verde oscuro del
+// logo y el fiado en un rojo claro, y se separan por luminosidad (ΔL* ~30),
+// que además aguanta la impresión en blanco y negro.
+const CASH = '#07682D'
+const ACCOUNT = '#E98A7F'
 
 const DAYS_WINDOW = 35
 const money = (n, max = 0) =>
@@ -228,7 +230,7 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="grid gap-4">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="h-28 animate-pulse rounded-2xl bg-paper2/70" />
@@ -248,7 +250,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="grid gap-4 sm:gap-5">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:gap-5">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile
           label="Ventas de hoy"
@@ -464,10 +466,13 @@ function DailyChart({ daily }) {
           </ul>
 
           <div className="mt-2 flex gap-[3px] pl-11">
-            {daily.map((d) => (
+            {/* En el celular no entran 14 días: se rotula uno sí y uno no. */}
+            {daily.map((d, i) => (
               <span
                 key={d.key}
-                className="flex-1 text-center text-[10px] capitalize text-inkfaint"
+                className={`min-w-0 flex-1 overflow-hidden text-center text-[10px] capitalize text-inkfaint ${
+                  i % 2 ? 'invisible sm:visible' : ''
+                }`}
               >
                 {dayLabel(d)}
               </span>
@@ -547,7 +552,7 @@ function PaymentSplit({ cash, account }) {
       <ul className="mt-4 space-y-2.5">
         {[
           { label: 'Efectivo', value: cash, pct: cashPct, color: CASH },
-          { label: 'Cuenta corriente', value: account, pct: accountPct, color: ACCOUNT },
+          { label: 'Fiado', value: account, pct: accountPct, color: ACCOUNT },
         ].map((row) => (
           <li key={row.label} className="flex items-center justify-between gap-3 text-sm">
             <span className="flex min-w-0 items-center gap-2">

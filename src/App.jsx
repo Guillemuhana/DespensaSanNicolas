@@ -95,7 +95,7 @@ const TABS = [
 ]
 
 const COLLAPSED_KEY = 'baratillo:menu-plegado'
-const AUTH_KEY = 'baratillo:acceso'
+const AUTH_KEY = 'baratillo:acceso-v2'
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -224,14 +224,12 @@ export default function App() {
             </button>
 
             <img
-              src="/logo.svg"
+              src="/logo.png"
               alt="El Baratillo"
-              className="h-14 w-auto shrink-0 rounded-full sm:h-16 lg:hidden"
+              width="900"
+              height="172"
+              className="h-8 w-auto min-w-0 shrink sm:h-9 lg:hidden"
             />
-
-            <span className="min-w-0 truncate font-display text-lg font-semibold text-ink sm:text-xl lg:hidden">
-              El Baratillo
-            </span>
 
             <div className="hidden min-w-0 lg:block">
               <h2 className="truncate font-display text-xl font-semibold text-ink">
@@ -316,14 +314,13 @@ function Sidebar({ tab, go, onLogout, collapsed, onToggle, onClose, layoutId, cl
         }`}
       >
         <h1 className="flex min-w-0 items-center">
+          {/* Plegado no entra la palabra entera: queda la B del logo. */}
           <img
-            src="/logo.svg"
+            src={expanded ? '/logo.png' : '/icon.png'}
             alt=""
-            width="512"
-            height="512"
-            className={`w-auto select-none rounded-full transition-all duration-300 ${
-              expanded ? 'h-28' : 'h-11'
-            }`}
+            width={expanded ? 900 : 180}
+            height={expanded ? 172 : 180}
+            className={`select-none ${expanded ? 'h-auto w-full' : 'h-11 w-11 rounded-lg'}`}
             draggable="false"
           />
           <span className="sr-only">El Baratillo</span>

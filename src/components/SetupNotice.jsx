@@ -3,11 +3,11 @@ export default function SetupNotice() {
     <div className="flex min-h-screen items-center justify-center bg-paper p-4 sm:p-6">
       <div className="w-full max-w-lg rounded-2xl border border-line bg-surface p-6 shadow-lift sm:p-8">
         <img
-          src="/logo.svg"
+          src="/logo.png"
           alt="El Baratillo"
-          width="512"
-          height="512"
-          className="mb-6 h-24 w-auto rounded-full"
+          width="900"
+          height="172"
+          className="mb-6 h-12 w-auto"
         />
         <p className="eyebrow text-brick">Configuración pendiente</p>
         <h1 className="mt-1.5 font-display text-xl font-semibold text-ink sm:text-2xl">

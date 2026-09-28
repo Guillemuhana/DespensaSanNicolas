@@ -282,7 +282,7 @@ export default function POS() {
     // En el teléfono el orden es: buscador → ticket → productos, y el botón de
     // cobrar queda fijo al pie de la pantalla (por eso el padding de abajo).
     // En escritorio son dos columnas y el ticket queda pegado al scroll.
-    <div className="grid gap-4 pb-24 lg:grid-cols-[1fr_400px] lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-6 lg:pb-0">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-4 pb-24 lg:grid-cols-[1fr_400px] lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-6 lg:pb-0">
       <div className="order-1 flex flex-col gap-3 lg:col-start-1 lg:row-start-1">
         <form onSubmit={handleScan}>
           <div className="mb-2 flex items-end justify-between gap-3">
@@ -299,7 +299,7 @@ export default function POS() {
             </button>
           </div>
           <div className="flex gap-2">
-          <div className="relative flex-1">
+          <div className="relative min-w-0 flex-1">
             <span
               aria-hidden="true"
               className="absolute left-4 top-1/2 -translate-y-1/2 text-inkfaint/60"

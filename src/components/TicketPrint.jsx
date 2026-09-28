@@ -26,9 +26,9 @@ export default function TicketPrint({ sale }) {
     <div className="ticket-sheet">
       <div style={{ textAlign: 'center', marginBottom: '6px' }}>
         <img
-          src="/logo.svg"
+          src="/logo.png"
           alt=""
-          style={{ width: '24mm', height: 'auto', margin: '0 auto 4px' }}
+          style={{ width: '50mm', height: 'auto', margin: '0 auto 4px' }}
         />
         <div style={{ fontWeight: 700, fontSize: '13px' }}>EL BARATILLO</div>
         <div style={{ fontSize: '10px' }}>Comprobante no válido como factura</div>
