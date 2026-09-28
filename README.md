@@ -14,7 +14,7 @@ cuántos kilos fueron y descuenta esa cantidad del stock.
 
 1. Creá un proyecto en supabase.com.
 2. Corré el script `supabase/schema.sql` en el SQL Editor de ese proyecto
-   (crea las tablas) y después las migraciones `002` a `006` del mismo
+   (crea las tablas) y después las migraciones `002` a `007` del mismo
    directorio, en ese orden. La `004` agrega la foto del producto y crea el
    bucket de Storage donde se guardan; la `005` suma el rubro del producto.
 3. Copiá `.env.example` a `.env` y completá con los datos de tu proyecto
