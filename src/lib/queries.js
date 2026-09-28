@@ -126,10 +126,24 @@ export async function createCustomer(customer) {
   return data
 }
 
+export async function updateCustomer(id, changes) {
+  const { data, error } = await supabase
+    .from('customers')
+    .update(changes)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+// Cada cargo trae lo que se llevó en esa venta, para mostrarlo y mandárselo al
+// cliente. sale_type viene del producto porque sale_items no lo guarda: sin él
+// no se distingue 1 kg de 1 unidad.
 export async function fetchAccountMovements(customerId) {
   const { data, error } = await supabase
     .from('account_movements')
-    .select('*')
+    .select('*, sales(sale_items(product_name, quantity, subtotal, products(sale_type)))')
     .eq('customer_id', customerId)
     .order('created_at', { ascending: false })
   if (error) throw error

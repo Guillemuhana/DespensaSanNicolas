@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react'
+import { Check, Copy, MessageCircle, Pencil, Phone, Share2 } from 'lucide-react'
 import {
   fetchCustomers,
   fetchAllBalances,
   fetchAccountMovements,
   addAccountMovement,
   createCustomer,
+  updateCustomer,
 } from '../lib/queries'
+import { buildAccountMessage, itemsOf, qtyLabel, whatsappUrl } from '../lib/accountShare'
+
+const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
 export default function Accounts() {
   const [customers, setCustomers] = useState([])
@@ -14,6 +19,10 @@ export default function Accounts() {
   const [movements, setMovements] = useState([])
   const [paymentAmount, setPaymentAmount] = useState('')
   const [newName, setNewName] = useState('')
+  const [newPhone, setNewPhone] = useState('')
+  const [editingPhone, setEditingPhone] = useState(false)
+  const [phoneDraft, setPhoneDraft] = useState('')
+  const [copied, setCopied] = useState(false)
   const [status, setStatus] = useState(null)
 
   useEffect(() => {
@@ -33,6 +42,8 @@ export default function Accounts() {
   async function selectCustomer(c) {
     setSelected(c)
     setPaymentAmount('')
+    setEditingPhone(false)
+    setCopied(false)
     try {
       setMovements(await fetchAccountMovements(c.id))
     } catch (err) {
@@ -44,8 +55,9 @@ export default function Accounts() {
     e.preventDefault()
     if (!newName.trim()) return
     try {
-      const c = await createCustomer({ name: newName.trim() })
+      const c = await createCustomer({ name: newName.trim(), phone: newPhone.trim() || null })
       setNewName('')
+      setNewPhone('')
       await load()
       selectCustomer(c)
     } catch (err) {
@@ -72,6 +84,47 @@ export default function Accounts() {
     }
   }
 
+  async function handleSavePhone(e) {
+    e.preventDefault()
+    try {
+      const c = await updateCustomer(selected.id, { phone: phoneDraft.trim() || null })
+      setSelected(c)
+      setCustomers((prev) => prev.map((x) => (x.id === c.id ? c : x)))
+      setEditingPhone(false)
+    } catch (err) {
+      setStatus({ type: 'error', text: err.message })
+    }
+  }
+
+  function accountMessage() {
+    return buildAccountMessage({
+      customer: selected,
+      movements,
+      balance: balances[selected.id] || 0,
+    })
+  }
+
+  // En el celular abre el menú de compartir del sistema; en la compu, donde
+  // casi nunca está, copia el texto para pegarlo donde haga falta.
+  async function handleShare() {
+    const text = accountMessage()
+    if (canNativeShare) {
+      try {
+        await navigator.share({ title: `Cuenta de ${selected.name}`, text })
+      } catch {
+        // Cerró el menú sin elegir nada: no es un error.
+      }
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setStatus({ type: 'error', text: 'No se pudo copiar el resumen.' })
+    }
+  }
+
   const sortedCustomers = [...customers].sort(
     (a, b) => (balances[b.id] || 0) - (balances[a.id] || 0)
   )
@@ -94,16 +147,29 @@ export default function Accounts() {
         </div>
 
         <form onSubmit={handleAddCustomer} className="mb-4 flex gap-2">
-          <input
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="Nuevo cliente..."
-            className="min-w-0 flex-1 rounded-xl border border-line bg-surface px-4 py-2.5 shadow-card transition-colors focus:border-awning focus:outline-none"
-          />
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Nuevo cliente..."
+              aria-label="Nombre del cliente nuevo"
+              className="min-w-0 rounded-xl border border-line bg-surface px-4 py-2.5 shadow-card transition-colors focus:border-awning focus:outline-none"
+            />
+            {newName.trim() && (
+              <input
+                type="tel"
+                value={newPhone}
+                onChange={(e) => setNewPhone(e.target.value)}
+                placeholder="WhatsApp (opcional), ej. 11 2345 6789"
+                aria-label="WhatsApp del cliente nuevo"
+                className="min-w-0 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm shadow-card transition-colors focus:border-awning focus:outline-none"
+              />
+            )}
+          </div>
           <button
             type="submit"
             aria-label="Agregar cliente"
-            className="shrink-0 rounded-xl bg-awning px-4 font-semibold text-white shadow-card transition-colors hover:bg-awning-dark"
+            className="shrink-0 self-start rounded-xl bg-awning px-4 py-2.5 font-semibold text-white shadow-card transition-colors hover:bg-awning-dark"
           >
             <svg
               width="20"
@@ -184,6 +250,44 @@ export default function Accounts() {
                 <h2 className="mt-1 break-words font-display text-xl font-semibold text-ink sm:text-2xl">
                   {selected.name}
                 </h2>
+                {editingPhone ? (
+                  <form onSubmit={handleSavePhone} className="mt-2 flex gap-2">
+                    <input
+                      type="tel"
+                      autoFocus
+                      value={phoneDraft}
+                      onChange={(e) => setPhoneDraft(e.target.value)}
+                      placeholder="Ej. 11 2345 6789"
+                      aria-label="WhatsApp del cliente"
+                      className="w-44 min-w-0 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm transition-colors focus:border-awning focus:outline-none"
+                    />
+                    <button
+                      type="submit"
+                      className="rounded-lg bg-awning px-3 text-sm font-semibold text-white transition-colors hover:bg-awning-dark"
+                    >
+                      Guardar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingPhone(false)}
+                      className="rounded-lg px-2 text-sm text-inkfaint transition-colors hover:text-ink"
+                    >
+                      Cancelar
+                    </button>
+                  </form>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setPhoneDraft(selected.phone || '')
+                      setEditingPhone(true)
+                    }}
+                    className="mt-1.5 flex items-center gap-1.5 text-sm text-inkfaint transition-colors hover:text-ink"
+                  >
+                    <Phone size={14} />
+                    {selected.phone || 'Agregar WhatsApp'}
+                    <Pencil size={12} className="opacity-60" />
+                  </button>
+                )}
               </div>
               <div className="text-right">
                 <p className="eyebrow text-inkfaint">Saldo</p>
@@ -195,6 +299,39 @@ export default function Accounts() {
                   ${(balances[selected.id] || 0).toLocaleString('es-AR', { maximumFractionDigits: 2 })}
                 </span>
               </div>
+            </div>
+
+            <div className="no-print mb-5 flex flex-wrap gap-2">
+              <a
+                href={whatsappUrl(selected.phone, accountMessage())}
+                target="_blank"
+                rel="noreferrer"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#1FA855] px-4 py-2.5 text-sm font-semibold text-white shadow-card transition-colors hover:bg-[#178A45] sm:flex-none"
+              >
+                <MessageCircle size={17} strokeWidth={2.4} />
+                Enviar por WhatsApp
+              </a>
+              <button
+                onClick={handleShare}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-line px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-paper2 sm:flex-none"
+              >
+                {canNativeShare ? (
+                  <>
+                    <Share2 size={16} strokeWidth={2.4} />
+                    Compartir
+                  </>
+                ) : copied ? (
+                  <>
+                    <Check size={16} strokeWidth={2.6} className="text-awning" />
+                    Copiado
+                  </>
+                ) : (
+                  <>
+                    <Copy size={16} strokeWidth={2.4} />
+                    Copiar resumen
+                  </>
+                )}
+              </button>
             </div>
 
             <form onSubmit={handleRegisterPayment} className="mb-6 flex flex-col gap-2 sm:flex-row">
@@ -247,8 +384,17 @@ export default function Accounts() {
                     </span>
                     <div className="min-w-0">
                       <p className="truncate text-ink">
-                        {m.note || (m.type === 'charge' ? 'Cargo' : 'Pago')}
+                        {m.type === 'charge' && m.note === 'Venta a cuenta'
+                          ? 'Fiado'
+                          : m.note || (m.type === 'charge' ? 'Fiado' : 'Pago')}
                       </p>
+                      {itemsOf(m).length > 0 && (
+                        <p className="text-xs leading-snug text-inkfaint">
+                          {itemsOf(m)
+                            .map((it) => `${it.product_name} ${qtyLabel(it)}`)
+                            .join(' · ')}
+                        </p>
+                      )}
                       <p className="text-xs text-inkfaint">
                         {new Date(m.created_at).toLocaleString('es-AR', {
                           day: '2-digit',

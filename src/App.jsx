@@ -62,7 +62,7 @@ const TABS = [
     icon: Wallet,
     Page: Accounts,
     title: 'Cuentas corrientes',
-    description: 'Saldos, cargos y pagos',
+    description: 'Lo que fían los clientes y lo que van pagando',
     printLabel: 'Imprimir resumen',
   },
   {
