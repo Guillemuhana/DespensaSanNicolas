@@ -19,6 +19,8 @@ export default function Accounts() {
   const [movements, setMovements] = useState([])
   const [paymentAmount, setPaymentAmount] = useState('')
   const [newName, setNewName] = useState('')
+  const [movementKind, setMovementKind] = useState('charge') // 'charge' = fiado | 'payment'
+  const [movementNote, setMovementNote] = useState('')
   const [newPhone, setNewPhone] = useState('')
   const [editingPhone, setEditingPhone] = useState(false)
   const [phoneDraft, setPhoneDraft] = useState('')
@@ -65,18 +67,22 @@ export default function Accounts() {
     }
   }
 
-  async function handleRegisterPayment(e) {
+  // "Anotámelo": el fiado se carga a mano con el monto, sin pasar los productos
+  // por Facturación. El pago va por el mismo formulario.
+  async function handleRegisterMovement(e) {
     e.preventDefault()
     const amount = Number(paymentAmount)
     if (!selected || amount <= 0) return
+    const isCharge = movementKind === 'charge'
     try {
       await addAccountMovement({
         customer_id: selected.id,
-        type: 'payment',
+        type: movementKind,
         amount,
-        note: 'Pago recibido',
+        note: movementNote.trim() || (isCharge ? 'Fiado' : 'Pago recibido'),
       })
       setPaymentAmount('')
+      setMovementNote('')
       await load()
       selectCustomer(selected)
     } catch (err) {
@@ -334,22 +340,59 @@ export default function Accounts() {
               </button>
             </div>
 
-            <form onSubmit={handleRegisterPayment} className="mb-6 flex flex-col gap-2 sm:flex-row">
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={paymentAmount}
-                onChange={(e) => setPaymentAmount(e.target.value)}
-                placeholder="Monto que paga"
-                className="min-w-0 flex-1 rounded-xl border border-line bg-surface px-4 py-2.5 font-mono tabular transition-colors focus:border-awning focus:outline-none"
-              />
-              <button
-                type="submit"
-                className="whitespace-nowrap rounded-xl bg-awning px-5 py-2.5 font-semibold text-white shadow-card transition-colors hover:bg-awning-dark"
-              >
-                Registrar pago
-              </button>
+            <form onSubmit={handleRegisterMovement} className="mb-6 rounded-xl bg-paper2/60 p-3">
+              <div className="mb-2.5 flex gap-1 rounded-lg bg-paper2 p-1">
+                {[
+                  { id: 'charge', label: 'Anotar fiado' },
+                  { id: 'payment', label: 'Registrar pago' },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setMovementKind(opt.id)}
+                    className={`flex-1 rounded-md py-1.5 text-sm font-semibold transition-all ${
+                      movementKind === opt.id
+                        ? 'bg-surface text-ink shadow-card'
+                        : 'text-inkfaint hover:text-ink'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                  min="0"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  placeholder={movementKind === 'charge' ? 'Monto que se lleva' : 'Monto que paga'}
+                  aria-label="Monto"
+                  className="min-w-0 rounded-xl border border-line bg-surface px-4 py-2.5 font-mono tabular transition-colors focus:border-awning focus:outline-none sm:w-40"
+                />
+                <input
+                  value={movementNote}
+                  onChange={(e) => setMovementNote(e.target.value)}
+                  placeholder={
+                    movementKind === 'charge' ? 'Qué se llevó (opcional)' : 'Nota (opcional)'
+                  }
+                  aria-label="Nota"
+                  className="min-w-0 flex-1 rounded-xl border border-line bg-surface px-4 py-2.5 transition-colors focus:border-awning focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={!(Number(paymentAmount) > 0)}
+                  className={`whitespace-nowrap rounded-xl px-5 py-2.5 font-semibold text-white shadow-card transition-colors disabled:bg-paper2 disabled:text-inkfaint/70 disabled:shadow-none ${
+                    movementKind === 'charge'
+                      ? 'bg-brick hover:bg-brick-dark'
+                      : 'bg-awning hover:bg-awning-dark'
+                  }`}
+                >
+                  {movementKind === 'charge' ? 'Anotar' : 'Registrar pago'}
+                </button>
+              </div>
             </form>
 
             <p className="eyebrow mb-1 text-inkfaint">Movimientos</p>

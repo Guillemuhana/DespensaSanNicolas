@@ -53,7 +53,7 @@ export default function PaymentModal({ total, customers, onConfirm, onCancel, on
         <div className="mb-5 flex gap-1 rounded-xl bg-paper2 p-1">
           {[
             { id: 'cash', label: 'Efectivo' },
-            { id: 'account', label: 'Cuenta corriente' },
+            { id: 'account', label: 'Fiado' },
           ].map((opt) => (
             <button
               key={opt.id}

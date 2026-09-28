@@ -47,7 +47,10 @@ export function buildAccountMessage({ customer, movements, balance }) {
 
   for (const m of openMovements(movements)) {
     if (m.type === 'charge') {
-      lines.push(`${day(m.created_at)} Fiado ${money(m.amount)}`)
+      // Los anotados a mano traen lo que se llevó en la nota; los de
+      // Facturación traen el detalle abajo.
+      const custom = m.note && m.note !== 'Fiado' && m.note !== 'Venta a cuenta'
+      lines.push(`${day(m.created_at)} Fiado${custom ? ` (${m.note})` : ''} ${money(m.amount)}`)
       for (const it of itemsOf(m)) {
         lines.push(`   · ${it.product_name} ${qtyLabel(it)} ${money(it.subtotal)}`)
       }
