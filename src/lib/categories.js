@@ -1,12 +1,12 @@
 /**
- * Rubros de mercadería de la tienda.
+ * Rubros de mercadería del minimercado y la carnicería.
  *
  * Van acá y no en una tabla porque son pocos, cambian poco, y es el mismo
  * criterio que las categorías de gastos en Expenses.jsx. Lo que se guarda en
  * products.category es el `id`; el `label` y el `group` son sólo para mostrar,
  * así que renombrar una etiqueta o mover un rubro de grupo no toca los datos.
  *
- * El `group` existe porque con 32 rubros un desplegable plano no se lee: los
+ * El `group` existe porque con 28 rubros un desplegable plano no se lee: los
  * selectores los muestran en <optgroup>. No es una segunda columna en la base
  * —el producto guarda el rubro y nada más—, así que reagrupar es editar este
  * archivo y listo.
@@ -15,43 +15,45 @@
  * deja sin rubro, no los rompe: labelOf devuelve el id crudo si no lo encuentra.
  */
 
-const BAZAR = 'Bazar y marroquinería'
-const DEPORTIVA = 'Ropa deportiva'
+const ALMACEN = 'Almacén'
+const BEBIDAS = 'Bebidas'
+const FRESCOS = 'Frescos'
+const CARNICERIA = 'Carnicería'
+const LIMPIEZA = 'Limpieza y perfumería'
 
 export const CATEGORIES = [
-  { id: 'termos', label: 'Termos', group: BAZAR },
-  { id: 'vasos-termicos', label: 'Vasos térmicos', group: BAZAR },
-  { id: 'mates', label: 'Mates', group: BAZAR },
-  { id: 'equipos-mate', label: 'Equipos de mate por tres', group: BAZAR },
-  { id: 'lentes', label: 'Lentes', group: BAZAR },
-  { id: 'chau-latas', label: 'Chau latas', group: BAZAR },
-  { id: 'billeteras', label: 'Billeteras', group: BAZAR },
-  { id: 'sobres-fiesta', label: 'Sobres de fiesta', group: BAZAR },
-  { id: 'carteras', label: 'Carteras', group: BAZAR },
-  { id: 'bolsos', label: 'Bolsos', group: BAZAR },
-  { id: 'rinoneras', label: 'Riñoneras', group: BAZAR },
-  { id: 'mochilas', label: 'Mochilas', group: BAZAR },
-  { id: 'porta-celulares', label: 'Porta celulares', group: BAZAR },
-  { id: 'portacosmeticos', label: 'Portacosméticos', group: BAZAR },
-  { id: 'mini-bags', label: 'Mini bags', group: BAZAR },
+  { id: 'almacen', label: 'Almacén seco', group: ALMACEN },
+  { id: 'fideos-arroz', label: 'Fideos, arroz y legumbres', group: ALMACEN },
+  { id: 'yerba-infusiones', label: 'Yerba, café e infusiones', group: ALMACEN },
+  { id: 'aceites-condimentos', label: 'Aceites y condimentos', group: ALMACEN },
+  { id: 'conservas', label: 'Conservas y enlatados', group: ALMACEN },
+  { id: 'galletitas-golosinas', label: 'Galletitas y golosinas', group: ALMACEN },
+  { id: 'snacks', label: 'Snacks', group: ALMACEN },
+  { id: 'panificados', label: 'Panificados', group: ALMACEN },
 
-  { id: 'tops', label: 'Tops', group: DEPORTIVA },
-  { id: 'conjuntos', label: 'Conjuntos', group: DEPORTIVA },
-  { id: 'calzas-largas', label: 'Calzas largas', group: DEPORTIVA },
-  { id: 'calzas-cortas', label: 'Calzas cortas', group: DEPORTIVA },
-  { id: 'remeras', label: 'Remeras', group: DEPORTIVA },
-  { id: 'medias', label: 'Medias', group: DEPORTIVA },
-  { id: 'vestidos-deportivos', label: 'Vestidos deportivos', group: DEPORTIVA },
-  { id: 'camperas', label: 'Camperas', group: DEPORTIVA },
-  { id: 'camisetas', label: 'Camisetas', group: DEPORTIVA },
-  { id: 'catsuits', label: 'Catsuits', group: DEPORTIVA },
-  { id: 'zapatillas', label: 'Zapatillas', group: DEPORTIVA },
-  { id: 'bombachas', label: 'Bombachas', group: DEPORTIVA },
-  { id: 'sudaderas', label: 'Sudaderas', group: DEPORTIVA },
-  { id: 'musculosas', label: 'Musculosas', group: DEPORTIVA },
-  { id: 'outlet', label: 'Outlet', group: DEPORTIVA },
-  { id: 'accesorios', label: 'Accesorios', group: DEPORTIVA },
-  { id: 'complementos', label: 'Complementos', group: DEPORTIVA },
+  { id: 'gaseosas', label: 'Gaseosas y aguas', group: BEBIDAS },
+  { id: 'jugos', label: 'Jugos', group: BEBIDAS },
+  { id: 'cervezas', label: 'Cervezas', group: BEBIDAS },
+  { id: 'vinos', label: 'Vinos y aperitivos', group: BEBIDAS },
+
+  { id: 'lacteos', label: 'Lácteos', group: FRESCOS },
+  { id: 'fiambres', label: 'Fiambres', group: FRESCOS },
+  { id: 'quesos', label: 'Quesos', group: FRESCOS },
+  { id: 'verduleria', label: 'Frutas y verduras', group: FRESCOS },
+  { id: 'huevos', label: 'Huevos', group: FRESCOS },
+  { id: 'congelados', label: 'Congelados', group: FRESCOS },
+
+  { id: 'vacuno', label: 'Vacuno', group: CARNICERIA },
+  { id: 'cerdo', label: 'Cerdo', group: CARNICERIA },
+  { id: 'pollo', label: 'Pollo', group: CARNICERIA },
+  { id: 'achuras', label: 'Achuras', group: CARNICERIA },
+  { id: 'embutidos', label: 'Chorizos y embutidos', group: CARNICERIA },
+  { id: 'elaborados', label: 'Milanesas y elaborados', group: CARNICERIA },
+  { id: 'picadas', label: 'Carne picada', group: CARNICERIA },
+
+  { id: 'limpieza', label: 'Limpieza', group: LIMPIEZA },
+  { id: 'perfumeria', label: 'Higiene y perfumería', group: LIMPIEZA },
+  { id: 'descartables', label: 'Descartables y bazar', group: LIMPIEZA },
 ]
 
 /** Los grupos en el orden en que aparecen arriba, con sus rubros adentro. */

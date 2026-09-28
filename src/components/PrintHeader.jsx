@@ -14,9 +14,9 @@ export default function PrintHeader({ title }) {
   return (
     <div className="print-only mb-5 items-end justify-between gap-6 border-b-2 border-ink pb-3">
       <div className="flex items-center gap-3">
-        <img src="/logo.jpeg" alt="" width="1254" height="1254" className="h-14 w-auto" />
+        <img src="/logo.svg" alt="" width="512" height="512" className="h-14 w-auto" />
         <div>
-          <p className="font-display text-lg font-bold leading-tight">Firenze Store</p>
+          <p className="font-display text-lg font-bold leading-tight">El Baratillo</p>
           <p className="text-sm">{title}</p>
         </div>
       </div>

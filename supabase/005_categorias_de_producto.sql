@@ -1,7 +1,7 @@
 -- Migración 005: categoría del producto.
 -- Correr en el SQL Editor de Supabase. Es idempotente: se puede correr dos veces.
 
--- El rubro al que pertenece cada producto (termos, carteras, mochilas...).
+-- El rubro al que pertenece cada producto (almacén, bebidas, vacuno, pollo...).
 -- Es texto libre y no una tabla aparte: la lista la fija la app en
 -- src/lib/categories.js, igual que las categorías de gastos. Queda nullable
 -- para que un producto viejo o cargado al vuelo no obligue a elegir.

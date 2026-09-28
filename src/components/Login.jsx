@@ -29,14 +29,14 @@ export default function Login({ onLogin }) {
         className="w-full max-w-sm rounded-2xl border border-line bg-surface p-6 shadow-lift sm:p-8"
       >
         <img
-          src="/logo.jpeg"
-          alt="Firenze Store"
-          width="1254"
-          height="1254"
+          src="/logo.svg"
+          alt="El Baratillo"
+          width="512"
+          height="512"
           className="mx-auto mb-5 h-56 w-auto rounded-full sm:h-64"
         />
 
-        <h1 className="text-center font-display text-xl font-semibold text-ink">Firenze Store</h1>
+        <h1 className="text-center font-display text-xl font-semibold text-ink">El Baratillo</h1>
         <p className="mt-1 text-center text-sm text-inkfaint">Ingresá la contraseña para entrar</p>
 
         <div className="mt-6">

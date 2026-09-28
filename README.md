@@ -1,7 +1,8 @@
-# Firenze Store
+# El Baratillo
 
-App de punto de venta para una tienda de ropa, carteras y accesorios:
-facturación con código de barras, control de stock y cuentas corrientes.
+App de punto de venta para El Baratillo, minimercado y carnicería: facturación
+con código de barras, control de stock (incluye productos por peso, como la
+carne y los fiambres) y cuentas corrientes.
 
 ## Cómo funciona lo de "por peso"
 
@@ -13,9 +14,9 @@ cuántos kilos fueron y descuenta esa cantidad del stock.
 
 1. Creá un proyecto en supabase.com.
 2. Corré el script `supabase/schema.sql` en el SQL Editor de ese proyecto
-   (crea las tablas y carga 5 productos de ejemplo) y después las migraciones
-   `002`, `003` y `004` del mismo directorio, en ese orden. La `004` agrega la
-   foto del producto y crea el bucket de Storage donde se guardan.
+   (crea las tablas) y después las migraciones `002` a `006` del mismo
+   directorio, en ese orden. La `004` agrega la foto del producto y crea el
+   bucket de Storage donde se guardan; la `005` suma el rubro del producto.
 3. Copiá `.env.example` a `.env` y completá con los datos de tu proyecto
    (Project Settings → API):
    ```

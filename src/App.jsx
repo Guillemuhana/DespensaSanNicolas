@@ -94,8 +94,8 @@ const TABS = [
   },
 ]
 
-const COLLAPSED_KEY = 'firenze:menu-plegado'
-const AUTH_KEY = 'firenze:acceso'
+const COLLAPSED_KEY = 'baratillo:menu-plegado'
+const AUTH_KEY = 'baratillo:acceso'
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -224,13 +224,13 @@ export default function App() {
             </button>
 
             <img
-              src="/logo.jpeg"
-              alt="Firenze Store"
+              src="/logo.svg"
+              alt="El Baratillo"
               className="h-14 w-auto shrink-0 rounded-full sm:h-16 lg:hidden"
             />
 
             <span className="min-w-0 truncate font-display text-lg font-semibold text-ink sm:text-xl lg:hidden">
-              Firenze Store
+              El Baratillo
             </span>
 
             <div className="hidden min-w-0 lg:block">
@@ -311,22 +311,22 @@ function Sidebar({ tab, go, onLogout, collapsed, onToggle, onClose, layoutId, cl
       } ${hovering ? 'shadow-pop' : ''} ${className}`}
     >
       <div
-        className={`relative flex items-center gap-2 pb-4 pt-5 ${
-          expanded ? 'justify-center px-5 pt-7' : 'flex-col px-2'
+        className={`flex items-center gap-2 pb-4 pt-5 ${
+          expanded ? 'justify-between px-5 pt-6' : 'flex-col px-2'
         }`}
       >
-        <h1 className="flex min-w-0 items-center justify-center">
+        <h1 className="flex min-w-0 items-center">
           <img
-            src="/logo.jpeg"
+            src="/logo.svg"
             alt=""
-            width="1254"
-            height="1254"
+            width="512"
+            height="512"
             className={`w-auto select-none rounded-full transition-all duration-300 ${
-              expanded ? 'h-40' : 'h-14'
+              expanded ? 'h-28' : 'h-11'
             }`}
             draggable="false"
           />
-          <span className="sr-only">Firenze Store</span>
+          <span className="sr-only">El Baratillo</span>
         </h1>
 
         {onToggle && (
@@ -334,7 +334,7 @@ function Sidebar({ tab, go, onLogout, collapsed, onToggle, onClose, layoutId, cl
             onClick={onToggle}
             aria-label={collapsed ? 'Fijar el menú abierto' : 'Plegar el menú'}
             title={collapsed ? 'Fijar el menú abierto' : 'Plegar el menú'}
-            className="absolute right-3 top-6 shrink-0 rounded-lg p-2 text-inkfaint transition-colors hover:bg-paper2 hover:text-ink"
+            className="shrink-0 rounded-lg p-2 text-inkfaint transition-colors hover:bg-paper2 hover:text-ink"
           >
             {collapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}
           </button>
@@ -344,7 +344,7 @@ function Sidebar({ tab, go, onLogout, collapsed, onToggle, onClose, layoutId, cl
           <button
             onClick={onClose}
             aria-label="Cerrar menú"
-            className="absolute right-3 top-6 shrink-0 rounded-lg p-2 text-inkfaint transition-colors hover:bg-paper2 hover:text-ink"
+            className="shrink-0 rounded-lg p-2 text-inkfaint transition-colors hover:bg-paper2 hover:text-ink"
           >
             <X size={20} />
           </button>
@@ -399,7 +399,7 @@ function Sidebar({ tab, go, onLogout, collapsed, onToggle, onClose, layoutId, cl
         {expanded ? (
           <>
             <p className="truncate font-display text-sm font-semibold text-ink">
-              Firenze Store
+              El Baratillo
             </p>
             <p className="mt-0.5 truncate text-xs text-inkfaint">{today}</p>
             <button
