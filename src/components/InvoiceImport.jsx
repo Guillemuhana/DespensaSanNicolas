@@ -70,6 +70,7 @@ export default function InvoiceImport({
   const [expenseCategory, setExpenseCategory] = useState(defaultExpenseCategory)
   const [expenseAmount, setExpenseAmount] = useState('')
   const [duplicate, setDuplicate] = useState(null)
+  const [waiting, setWaiting] = useState(0) // segundos hasta reintentar
   const cameraRef = useRef(null)
   const fileRef = useRef(null)
 
@@ -81,7 +82,7 @@ export default function InvoiceImport({
     setStep('reading')
     try {
       const payload = await fileToPayload(file)
-      const data = await readInvoice(payload)
+      const data = await readInvoice(payload, { onWait: setWaiting })
       if (!data.lines?.length) {
         throw new Error('No encontramos renglones de productos. Probá con una foto más nítida y derecha.')
       }
@@ -335,7 +336,11 @@ export default function InvoiceImport({
             <div className="flex flex-col items-center gap-3 py-12 text-center">
               <Loader2 size={32} className="animate-spin text-awning" />
               <p className="font-semibold text-ink">Leyendo la factura...</p>
-              <p className="text-sm text-inkfaint">Tarda unos segundos.</p>
+              <p className="text-sm text-inkfaint">
+                {waiting > 0
+                  ? `Groq está al límite por minuto: reintento solo en ${waiting} s. No cierres esta ventana.`
+                  : 'Tarda unos segundos.'}
+              </p>
             </div>
           )}
 

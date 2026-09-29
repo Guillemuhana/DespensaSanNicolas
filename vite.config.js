@@ -22,7 +22,7 @@ function apiDev(env) {
           const body = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}')
           send(200, await leerFactura(body, { apiKey: env.GROQ_API_KEY, model: env.GROQ_MODEL }))
         } catch (err) {
-          send(err.status || 500, { error: err.message })
+          send(err.status || 500, { error: err.message, retryAfter: err.retryAfter })
         }
       })
     },

@@ -10,8 +10,8 @@ import { sameBarcode } from './barcode'
 export async function fileToPayload(file) {
   const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '')
   if (!isPdf) {
-    // 2000 px alcanza para leer letra chica de factura sin pasar el límite.
-    const blob = await resizeImage(file, 2000, 0.85)
+    // 1600 px se lee bien y gasta menos del cupo por minuto de Groq.
+    const blob = await resizeImage(file, 1600, 0.85)
     return { image: await blobToDataUrl(blob) }
   }
 
@@ -34,7 +34,7 @@ export async function fileToPayload(file) {
   // como imagen.
   const page = await pdf.getPage(1)
   const base = page.getViewport({ scale: 1 })
-  const viewport = page.getViewport({ scale: Math.min(2.5, 2000 / Math.max(base.width, base.height)) })
+  const viewport = page.getViewport({ scale: Math.min(2.5, 1600 / Math.max(base.width, base.height)) })
   const canvas = document.createElement('canvas')
   canvas.width = Math.round(viewport.width)
   canvas.height = Math.round(viewport.height)
@@ -68,7 +68,27 @@ function blobToDataUrl(blob) {
   })
 }
 
-export async function readInvoice(payload) {
+/**
+ * Manda la factura a leer. Si Groq está al límite por minuto, espera lo que
+ * pide y reintenta sola (hasta 3 veces); `onWait(segundos)` sirve para mostrar
+ * la cuenta regresiva.
+ */
+export async function readInvoice(payload, { onWait } = {}) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await readInvoiceOnce(payload)
+    } catch (err) {
+      if (!err.retryAfter || attempt >= 3) throw err
+      for (let left = err.retryAfter; left > 0; left--) {
+        onWait?.(left)
+        await new Promise((r) => setTimeout(r, 1000))
+      }
+      onWait?.(0)
+    }
+  }
+}
+
+async function readInvoiceOnce(payload) {
   let res
   try {
     res = await fetch('/api/leer-factura', {
@@ -80,7 +100,15 @@ export async function readInvoice(payload) {
     throw new Error('Sin conexión. Revisá internet y probá de nuevo.')
   }
   const data = await res.json().catch(() => null)
-  if (!res.ok) throw new Error(data?.error || `No se pudo leer la factura (error ${res.status}).`)
+  if (!res.ok) {
+    const err = new Error(
+      res.status === 429
+        ? 'Groq sigue al límite de lecturas por minuto. Probá de nuevo en un rato.'
+        : data?.error || `No se pudo leer la factura (error ${res.status}).`
+    )
+    if (res.status === 429) err.retryAfter = Number(data?.retryAfter) || 30
+    throw err
+  }
   return data
 }
 

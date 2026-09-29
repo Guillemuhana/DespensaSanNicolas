@@ -26,6 +26,9 @@ export default async function handler(req, res) {
     })
     return res.status(200).json(result)
   } catch (err) {
-    return res.status(err.status || 500).json({ error: err.message || 'No se pudo leer la factura.' })
+    if (err.retryAfter) res.setHeader('Retry-After', String(err.retryAfter))
+    return res
+      .status(err.status || 500)
+      .json({ error: err.message || 'No se pudo leer la factura.', retryAfter: err.retryAfter })
   }
 }

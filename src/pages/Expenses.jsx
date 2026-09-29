@@ -1,17 +1,36 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'motion/react'
-import { Trash2 } from 'lucide-react'
+import {
+  Beef,
+  Droplets,
+  Flame,
+  Home,
+  Landmark,
+  Lightbulb,
+  MoreHorizontal,
+  Package,
+  Plug,
+  Users,
+  Wifi,
+  Trash2,
+} from 'lucide-react'
 import { fetchExpenses, createExpense, deleteExpense } from '../lib/queries'
 import { friendlyError } from '../lib/friendlyError'
 
+// `fixed`: se paga todos los meses; si falta cargarlo en el mes, se avisa.
+// Luz, gas, agua e internet llegan con la migración 009.
 const CATEGORIES = [
-  { id: 'mercaderia', label: 'Mercadería' },
-  { id: 'frigorifico', label: 'Frigorífico y carne' },
-  { id: 'alquiler', label: 'Alquiler' },
-  { id: 'servicios', label: 'Servicios' },
-  { id: 'sueldos', label: 'Sueldos' },
-  { id: 'impuestos', label: 'Impuestos' },
-  { id: 'otros', label: 'Otros' },
+  { id: 'alquiler', label: 'Alquiler', icon: Home, fixed: true },
+  { id: 'luz', label: 'Luz', icon: Lightbulb, fixed: true },
+  { id: 'gas', label: 'Gas', icon: Flame, fixed: true },
+  { id: 'agua', label: 'Agua', icon: Droplets, fixed: true },
+  { id: 'internet', label: 'Internet y teléfono', icon: Wifi, fixed: true },
+  { id: 'impuestos', label: 'Impuestos', icon: Landmark, fixed: true },
+  { id: 'sueldos', label: 'Sueldos', icon: Users },
+  { id: 'mercaderia', label: 'Mercadería', icon: Package },
+  { id: 'frigorifico', label: 'Frigorífico y carne', icon: Beef },
+  { id: 'servicios', label: 'Otros servicios', icon: Plug },
+  { id: 'otros', label: 'Otros', icon: MoreHorizontal },
 ]
 const labelOf = (id) => CATEGORIES.find((c) => c.id === id)?.label ?? id
 
@@ -25,7 +44,7 @@ export default function Expenses() {
   const [expenses, setExpenses] = useState([])
   const [form, setForm] = useState({
     description: '',
-    category: 'mercaderia',
+    category: 'alquiler',
     amount: '',
     spent_on: todayInput(),
   })
@@ -56,11 +75,23 @@ export default function Expenses() {
         amount: Number(form.amount) || 0,
         spent_on: form.spent_on,
       })
-      setForm({ description: '', category: 'mercaderia', amount: '', spent_on: todayInput() })
+      setForm({ description: '', category: form.category, amount: '', spent_on: todayInput() })
       load()
     } catch (err) {
       setStatus(friendlyError(err.message, 'expenses'))
     }
+  }
+
+  // Elegir la categoría también propone la descripción si está vacía o era la
+  // de otra categoría: "Luz", "Alquiler"...
+  function pickCategory(c) {
+    setForm((f) => ({
+      ...f,
+      category: c.id,
+      description:
+        !f.description.trim() || CATEGORIES.some((x) => x.label === f.description) ? c.label : f.description,
+    }))
+    document.getElementById('expense-amount')?.focus()
   }
 
   async function handleDelete(id) {
@@ -90,7 +121,17 @@ export default function Expenses() {
       .filter((c) => c.total > 0)
       .sort((a, b) => b.total - a.total)
 
-    return { month: sum(thisMonth), year: sum(thisYear), byCategory }
+    // Gastos fijos que todavía no aparecen este mes. Un gasto guardado como
+    // "servicios" con "Luz · ..." (antes de la migración 009) también cuenta.
+    const missing = CATEGORIES.filter(
+      (c) =>
+        c.fixed &&
+        !thisMonth.some(
+          (e) => e.category === c.id || e.description?.toLowerCase().startsWith(c.label.toLowerCase())
+        )
+    )
+
+    return { month: sum(thisMonth), year: sum(thisYear), byCategory, missing }
   }, [expenses])
 
   const maxCat = Math.max(...summary.byCategory.map((c) => c.total), 1)
@@ -112,6 +153,27 @@ export default function Expenses() {
             </p>
           </div>
         </div>
+
+        {!loading && summary.missing.length > 0 && (
+          <div className="no-print rounded-2xl border border-line bg-surface p-4 shadow-card">
+            <p className="text-sm font-semibold text-ink">Gastos fijos que faltan cargar este mes</p>
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              {summary.missing.map((c) => {
+                const Icon = c.icon
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => pickCategory(c)}
+                    className="flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-inkfaint transition-colors hover:border-awning hover:text-awning"
+                  >
+                    <Icon size={14} strokeWidth={2.2} />
+                    {c.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {summary.byCategory.length > 0 && (
           <section className="rounded-2xl border border-line bg-surface p-4 shadow-card sm:p-5">
@@ -197,35 +259,48 @@ export default function Expenses() {
         )}
         <form onSubmit={handleSubmit} className="space-y-3.5">
           <div>
+            <label className="mb-1.5 block text-xs font-semibold text-inkfaint">Categoría</label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {CATEGORIES.map((c) => {
+                const Icon = c.icon
+                const active = form.category === c.id
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => pickCategory(c)}
+                    aria-pressed={active}
+                    className={`flex flex-col items-center gap-1 rounded-lg border px-1 py-2 text-[11px] font-semibold leading-tight transition-colors ${
+                      active
+                        ? 'border-awning bg-awning-50 text-awning-dark'
+                        : 'border-line text-inkfaint hover:border-awning hover:text-awning'
+                    }`}
+                  >
+                    <Icon size={17} strokeWidth={2.1} />
+                    <span className="text-center">{c.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          <div>
             <label className="mb-1.5 block text-xs font-semibold text-inkfaint">Descripción</label>
             <input
               required
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="Pedido a distribuidora..."
+              placeholder="Ej. Luz de septiembre, Ingresos Brutos..."
               className={inputClass}
             />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-inkfaint">Categoría</label>
-            <select
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-              className={inputClass}
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-inkfaint">Monto</label>
               <input
+                id="expense-amount"
                 required
                 type="number"
+                inputMode="decimal"
                 step="0.01"
                 min="0"
                 value={form.amount}

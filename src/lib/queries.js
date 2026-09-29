@@ -303,8 +303,20 @@ export async function fetchExpenses(sinceIso) {
   return data
 }
 
+// Categorías que agrega la migración 009. Si todavía no se corrió, la base las
+// rechaza: el gasto se guarda como "servicios" con el nombre adelante, así no
+// se pierde nada.
+const NEW_EXPENSE_CATEGORIES = { luz: 'Luz', gas: 'Gas', agua: 'Agua', internet: 'Internet' }
+
 export async function createExpense(expense) {
   const { data, error } = await supabase.from('expenses').insert(expense).select().single()
+  if (error?.code === '23514' && NEW_EXPENSE_CATEGORIES[expense.category]) {
+    const label = NEW_EXPENSE_CATEGORIES[expense.category]
+    const description = expense.description.toLowerCase().includes(label.toLowerCase())
+      ? expense.description
+      : `${label} · ${expense.description}`
+    return createExpense({ ...expense, category: 'servicios', description })
+  }
   if (error) throw error
   return data
 }

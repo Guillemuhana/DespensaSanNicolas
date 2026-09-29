@@ -101,7 +101,7 @@ const TABS = [
     icon: ReceiptText,
     Page: Expenses,
     title: 'Gastos',
-    description: 'Alquiler, proveedores, servicios',
+    description: 'Impuestos, luz, gas, agua, alquiler y más',
     printLabel: 'Imprimir gastos',
   },
 ]
