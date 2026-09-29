@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Camera, FileUp, Loader2, X } from 'lucide-react'
+import { Camera, FileUp, Loader2, ScanBarcode, X } from 'lucide-react'
+import CameraScanner from './CameraScanner'
+import { cameraAvailable } from '../lib/camera'
+import { sameBarcode } from '../lib/barcode'
 import {
   createProduct,
   createPurchaseInvoice,
@@ -67,6 +70,7 @@ export default function InvoiceImport({
   const [purchaseTotal, setPurchaseTotal] = useState('')
   const [duplicate, setDuplicate] = useState(null)
   const [waiting, setWaiting] = useState(0) // segundos hasta reintentar
+  const [scanRow, setScanRow] = useState(null) // renglón que se está escaneando
   const cameraRef = useRef(null)
   const fileRef = useRef(null)
 
@@ -113,6 +117,9 @@ export default function InvoiceImport({
         newName: niceName(line.description),
         newPrice: '',
         newSaleType: 'unit',
+        // Código de barras para guardar en el producto: el de la factura si
+        // lo trae, o el que escaneen del paquete.
+        barcode: line.ean || '',
         touched: false,
       }
     })
@@ -146,6 +153,14 @@ export default function InvoiceImport({
     setRows((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch, touched: true } : r)))
   }
 
+  // Al cargar o escanear un código: si ya es de un producto, ese renglón es
+  // ese producto.
+  function setRowBarcode(idx, value) {
+    const code = String(value || '').trim()
+    const found = code ? products.find((p) => sameBarcode(code, p.barcode)) : null
+    updateRow(idx, found ? { barcode: code, choice: found.id, how: 'barcode' } : { barcode: code })
+  }
+
   const productById = useMemo(() => Object.fromEntries(products.map((p) => [p.id, p])), [products])
   const sortedProducts = useMemo(
     () => [...products].sort((a, b) => a.name.localeCompare(b.name, 'es')),
@@ -171,6 +186,12 @@ export default function InvoiceImport({
   const active = rows.filter((r) => r.choice !== 'skip')
   const missingPrice = active.some((r) => r.choice === 'new' && !(Number(r.newPrice) > 0))
   const missingSupplier = supplierId === 'new' && !newSupplierName.trim()
+  // Un código que ya tiene otro producto no se puede repetir.
+  const barcodeClash = (r) => {
+    const code = r.barcode.trim()
+    if (!code) return null
+    return products.find((p) => sameBarcode(code, p.barcode) && p.id !== r.choice) || null
+  }
   const canSave = active.length > 0 && !missingPrice && !missingSupplier && step === 'review'
 
   async function handleSave() {
@@ -199,7 +220,7 @@ export default function InvoiceImport({
         if (r.choice === 'new') {
           const created = await createProduct({
             name: r.newName.trim() || niceName(r.line.description),
-            barcode: r.line.ean || null,
+            barcode: (!barcodeClash(r) && r.barcode.trim()) || null,
             category: null,
             sale_type: r.newSaleType,
             price: Number(r.newPrice),
@@ -214,8 +235,11 @@ export default function InvoiceImport({
           const base = stockNow[p.product.id] ?? (Number(p.product.stock) || 0)
           const newStock = base + p.add
           stockNow[p.product.id] = newStock
+          // Si el producto no tenía código y ahora lo escanearon, se guarda.
+          const addBarcode = !p.product.barcode && r.barcode.trim() && !barcodeClash(r)
           await updateProduct(p.product.id, {
             stock: newStock,
+            ...(addBarcode ? { barcode: r.barcode.trim() } : {}),
             ...(schema.costs && p.unitCost > 0 ? { cost: Math.round(p.unitCost * 100) / 100 } : {}),
             supplier_id: supplier.id,
           })
@@ -417,7 +441,7 @@ export default function InvoiceImport({
                             <p className="break-words font-medium text-ink">{r.line.description}</p>
                             <p className="font-mono text-xs text-inkfaint">
                               {[r.line.code && `cód. ${r.line.code}`, r.line.ean].filter(Boolean).join(' · ') ||
-                                'sin código'}
+                                'la factura no trae código'}
                             </p>
                           </div>
                           {!skip && !r.touched && (
@@ -480,6 +504,42 @@ export default function InvoiceImport({
 
                         {!skip && (
                           <>
+                            {p.product?.barcode ? (
+                              <p className="mt-2 flex items-center gap-1.5 font-mono text-xs text-inkfaint">
+                                <ScanBarcode size={13} />
+                                {p.product.barcode}
+                              </p>
+                            ) : (
+                              <div className="mt-2">
+                                <label className="text-[11px] font-semibold text-inkfaint">
+                                  Código de barras {r.choice === 'new' ? 'del producto' : '(el producto no tiene)'}
+                                </label>
+                                <div className="flex gap-2">
+                                  <input
+                                    value={r.barcode}
+                                    onChange={(e) => setRowBarcode(idx, e.target.value)}
+                                    inputMode="numeric"
+                                    placeholder="Escanealo o escribilo"
+                                    className={`${smallInput} ${barcodeClash(r) ? 'border-brick' : ''}`}
+                                  />
+                                  {cameraAvailable && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setScanRow(idx)}
+                                      aria-label="Escanear el código con la cámara"
+                                      className="flex shrink-0 items-center justify-center rounded-lg border border-line px-2.5 text-inkfaint transition-colors hover:border-awning hover:text-awning"
+                                    >
+                                      <Camera size={16} strokeWidth={2.2} />
+                                    </button>
+                                  )}
+                                </div>
+                                {barcodeClash(r) && (
+                                  <p className="mt-1 text-xs font-medium text-brick-dark">
+                                    Ese código es de &ldquo;{barcodeClash(r).name}&rdquo;: no se va a guardar acá.
+                                  </p>
+                                )}
+                              </div>
+                            )}
                             <div className="mt-2 grid grid-cols-3 gap-2">
                               <div>
                                 <label className="text-[11px] font-semibold text-inkfaint">
@@ -615,6 +675,18 @@ export default function InvoiceImport({
           </div>
         )}
       </div>
+
+      {scanRow !== null && (
+        <CameraScanner
+          title="Código del producto"
+          hint={rows[scanRow] ? rows[scanRow].line.description : undefined}
+          onDetect={(code) => {
+            setRowBarcode(scanRow, code)
+            setScanRow(null)
+          }}
+          onClose={() => setScanRow(null)}
+        />
+      )}
     </div>
   )
 }
