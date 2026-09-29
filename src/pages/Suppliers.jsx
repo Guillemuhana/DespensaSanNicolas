@@ -16,6 +16,8 @@ const emptyForm = { name: '', cuit: '', contact: '', phone: '', email: '', deliv
 const inputClass =
   'w-full rounded-lg border border-line bg-surface px-3 py-2 transition-colors focus:border-awning focus:outline-none'
 
+const money = (n) => '$' + (Number(n) || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })
+
 /** Deja sólo los dígitos, que es lo que espera el enlace de WhatsApp. */
 const waLink = (phone) => `https://wa.me/${String(phone).replace(/\D/g, '')}`
 
@@ -29,6 +31,7 @@ export default function Suppliers() {
   const [invoices, setInvoices] = useState([])
   const [showInvoice, setShowInvoice] = useState(false)
   const [notice, setNotice] = useState(null) // resultado de la última factura cargada
+  const [showAllPurchases, setShowAllPurchases] = useState(false)
 
   useEffect(() => {
     load()
@@ -68,6 +71,22 @@ export default function Suppliers() {
       if (inv.supplier_id && !map[inv.supplier_id]) map[inv.supplier_id] = inv
     }
     return map
+  }, [invoices])
+
+  const supplierName = (id) => suppliers.find((s) => s.id === id)?.name ?? 'Proveedor borrado'
+
+  // Lo comprado en el mes y en el año, según las facturas cargadas.
+  const purchaseTotals = useMemo(() => {
+    const now = new Date()
+    let month = 0
+    let year = 0
+    for (const inv of invoices) {
+      const d = new Date(inv.invoice_date ? inv.invoice_date + 'T12:00:00' : inv.created_at)
+      if (d.getFullYear() !== now.getFullYear()) continue
+      year += Number(inv.total) || 0
+      if (d.getMonth() === now.getMonth()) month += Number(inv.total) || 0
+    }
+    return { month, year }
   }, [invoices])
 
   // La columna cuit llega con la migración 008: sin ella no se manda.
@@ -126,8 +145,9 @@ export default function Suppliers() {
     <div className="grid gap-4 md:grid-cols-[1fr_340px] md:gap-6">
       <div>
         <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-inkfaint">
-            Cargá la factura y el proveedor, el stock y los costos se actualizan solos.
+          <p className="max-w-md text-sm text-inkfaint">
+            Lo que le comprás a los proveedores para vender. Cargá la factura y el stock, los
+            costos y el proveedor se actualizan solos.
           </p>
           <button
             onClick={() => setShowInvoice(true)}
@@ -166,6 +186,68 @@ export default function Suppliers() {
             {status}
           </div>
         )}
+
+        <div className="mb-4 grid grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-line bg-surface p-4 shadow-card">
+            <p className="eyebrow text-inkfaint">Compras del mes</p>
+            <p className="mt-1.5 font-mono text-2xl font-bold leading-none tabular text-ink">
+              {money(purchaseTotals.month)}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-line bg-surface p-4 shadow-card">
+            <p className="eyebrow text-inkfaint">Compras del año</p>
+            <p className="mt-1.5 font-mono text-2xl font-bold leading-none tabular text-ink">
+              {money(purchaseTotals.year)}
+            </p>
+          </div>
+        </div>
+
+        <section className="mb-6 overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
+          <div className="border-b border-line px-4 py-3 sm:px-5">
+            <h2 className="font-display text-base font-semibold text-ink">Últimas compras</h2>
+          </div>
+          {invoices.length === 0 ? (
+            <p className="px-4 py-8 text-center text-sm text-inkfaint">
+              Todavía no cargaste facturas. Tocá <span className="font-semibold">Cargar factura</span>.
+            </p>
+          ) : (
+            <>
+              <ul className="divide-y divide-line/70">
+                {(showAllPurchases ? invoices : invoices.slice(0, 6)).map((inv) => (
+                  <li key={inv.id} className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-ink">{supplierName(inv.supplier_id)}</p>
+                      <p className="text-xs text-inkfaint">
+                        {new Date(
+                          inv.invoice_date ? inv.invoice_date + 'T12:00:00' : inv.created_at
+                        ).toLocaleDateString('es-AR')}
+                        {inv.invoice_number && <> · Fact. {inv.invoice_number}</>}
+                        {Array.isArray(inv.lines) && (
+                          <>
+                            {' '}· {inv.lines.length} {inv.lines.length === 1 ? 'producto' : 'productos'}
+                          </>
+                        )}
+                      </p>
+                    </div>
+                    <span className="shrink-0 font-mono font-semibold tabular text-ink">
+                      {inv.total != null ? money(inv.total) : '—'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {invoices.length > 6 && (
+                <button
+                  onClick={() => setShowAllPurchases((v) => !v)}
+                  className="no-print w-full border-t border-line py-2.5 text-sm font-semibold text-awning hover:bg-paper2/60"
+                >
+                  {showAllPurchases ? 'Ver menos' : `Ver las ${invoices.length}`}
+                </button>
+              )}
+            </>
+          )}
+        </section>
+
+        <h2 className="mb-3 font-display text-base font-semibold text-ink">Proveedores</h2>
 
         {loading ? (
           <div className="space-y-2">

@@ -27,12 +27,18 @@ const CATEGORIES = [
   { id: 'internet', label: 'Internet y teléfono', icon: Wifi, fixed: true },
   { id: 'impuestos', label: 'Impuestos', icon: Landmark, fixed: true },
   { id: 'sueldos', label: 'Sueldos', icon: Users },
-  { id: 'mercaderia', label: 'Mercadería', icon: Package },
-  { id: 'frigorifico', label: 'Frigorífico y carne', icon: Beef },
   { id: 'servicios', label: 'Otros servicios', icon: Plug },
   { id: 'otros', label: 'Otros', icon: MoreHorizontal },
 ]
-const labelOf = (id) => CATEGORIES.find((c) => c.id === id)?.label ?? id
+
+// Antes las compras a proveedores se anotaban acá. Ahora van en Compras: se
+// siguen mostrando, pero no suman como gasto (su costo ya está en la ganancia).
+const PURCHASE_CATEGORIES = [
+  { id: 'mercaderia', label: 'Mercadería (compra)', icon: Package },
+  { id: 'frigorifico', label: 'Frigorífico (compra)', icon: Beef },
+]
+const isPurchase = (e) => PURCHASE_CATEGORIES.some((c) => c.id === e.category)
+const labelOf = (id) => [...CATEGORIES, ...PURCHASE_CATEGORIES].find((c) => c.id === id)?.label ?? id
 
 const money = (n) => '$' + Number(n).toLocaleString('es-AR', { maximumFractionDigits: 0 })
 const todayInput = () => new Date().toISOString().slice(0, 10)
@@ -105,11 +111,12 @@ export default function Expenses() {
 
   const summary = useMemo(() => {
     const now = new Date()
-    const thisMonth = expenses.filter((e) => {
+    const operating = expenses.filter((e) => !isPurchase(e))
+    const thisMonth = operating.filter((e) => {
       const d = new Date(e.spent_on + 'T00:00:00')
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
     })
-    const thisYear = expenses.filter(
+    const thisYear = operating.filter(
       (e) => new Date(e.spent_on + 'T00:00:00').getFullYear() === now.getFullYear()
     )
     const sum = (rows) => rows.reduce((s, e) => s + Number(e.amount), 0)
@@ -227,7 +234,8 @@ export default function Expenses() {
                   <div className="min-w-0">
                     <p className="truncate font-medium text-ink">{e.description}</p>
                     <p className="text-xs text-inkfaint">
-                      {labelOf(e.category)} ·{' '}
+                      {labelOf(e.category)}
+                      {isPurchase(e) && ' · no suma como gasto'} ·{' '}
                       {new Date(e.spent_on + 'T00:00:00').toLocaleDateString('es-AR')}
                     </p>
                   </div>

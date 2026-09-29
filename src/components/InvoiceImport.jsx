@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Camera, FileUp, Loader2, X } from 'lucide-react'
 import {
-  createExpense,
   createProduct,
   createPurchaseInvoice,
   createSupplier,
@@ -54,7 +53,6 @@ function niceName(s) {
 export default function InvoiceImport({
   products,
   suppliers,
-  defaultExpenseCategory = 'mercaderia',
   onDone,
   onClose,
 }) {
@@ -66,9 +64,7 @@ export default function InvoiceImport({
   const [learned, setLearned] = useState([])
   const [rows, setRows] = useState([])
   const [addIva, setAddIva] = useState(true)
-  const [registerExpense, setRegisterExpense] = useState(true)
-  const [expenseCategory, setExpenseCategory] = useState(defaultExpenseCategory)
-  const [expenseAmount, setExpenseAmount] = useState('')
+  const [purchaseTotal, setPurchaseTotal] = useState('')
   const [duplicate, setDuplicate] = useState(null)
   const [waiting, setWaiting] = useState(0) // segundos hasta reintentar
   const cameraRef = useRef(null)
@@ -94,7 +90,7 @@ export default function InvoiceImport({
         (s, l) => s + (l.subtotal ?? (l.quantity || 0) * (l.unitPrice || 0)),
         0
       )
-      setExpenseAmount(String(Math.round((data.invoice?.total ?? linesTotal) * 100) / 100))
+      setPurchaseTotal(String(Math.round((data.invoice?.total ?? linesTotal) * 100) / 100))
       setRows(buildRows(data.lines, []))
       setStep('review')
     } catch (err) {
@@ -238,22 +234,14 @@ export default function InvoiceImport({
       // 3. Lo aprendido, para que la próxima factura salga sola.
       await saveSupplierProducts(dedupeByKey(memoRows)).catch(() => {})
 
-      // 4. Gasto
-      if (registerExpense && Number(expenseAmount) > 0) {
-        await createExpense({
-          description: `Factura ${inv.number || ''} · ${supplier.name}`.replace(/\s+·/, ' ·').trim(),
-          category: expenseCategory,
-          amount: Number(expenseAmount),
-          spent_on: inv.date || today(),
-        })
-      }
-
-      // 5. Historial
+      // 4. La compra queda en Compras. No va a Gastos: es mercadería que se
+      // vende, y su costo ya entra en la ganancia a través del costo de cada
+      // producto.
       await createPurchaseInvoice({
         supplier_id: supplier.id,
         invoice_number: inv.number || null,
-        invoice_date: inv.date || null,
-        total: inv.total ?? null,
+        invoice_date: inv.date || today(),
+        total: Number(purchaseTotal) > 0 ? Number(purchaseTotal) : (inv.total ?? null),
         lines: active.map((r) => ({ ...r.line, product_id: r.choice === 'new' ? null : r.choice })),
       }).catch(() => {})
 
@@ -568,38 +556,25 @@ export default function InvoiceImport({
                 </ul>
               </section>
 
-              {/* Gasto */}
+              {/* Total de la compra */}
               <section className="rounded-xl border border-line p-3.5">
-                <label className="flex items-center gap-2.5 text-sm font-semibold text-ink">
-                  <input
-                    type="checkbox"
-                    checked={registerExpense}
-                    onChange={(e) => setRegisterExpense(e.target.checked)}
-                    className="h-4 w-4 accent-awning"
-                  />
-                  Registrar la compra en Gastos
+                <label htmlFor="purchase-total" className="block text-sm font-semibold text-ink">
+                  Total de la compra
                 </label>
-                {registerExpense && (
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    <select
-                      value={expenseCategory}
-                      onChange={(e) => setExpenseCategory(e.target.value)}
-                      className={`${inputClass} text-sm`}
-                    >
-                      <option value="mercaderia">Mercadería</option>
-                      <option value="frigorifico">Frigorífico y carne</option>
-                    </select>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      min="0"
-                      step="0.01"
-                      value={expenseAmount}
-                      onChange={(e) => setExpenseAmount(e.target.value)}
-                      className={`${inputClass} font-mono text-sm`}
-                    />
-                  </div>
-                )}
+                <input
+                  id="purchase-total"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.01"
+                  value={purchaseTotal}
+                  onChange={(e) => setPurchaseTotal(e.target.value)}
+                  className={`${inputClass} mt-1.5 font-mono text-sm`}
+                />
+                <p className="mt-1.5 text-xs text-inkfaint">
+                  Queda registrada en Compras. No va a Gastos: es mercadería que vendés, y su costo
+                  ya se descuenta de la ganancia cuando se vende.
+                </p>
               </section>
 
               {learned.length > 0 && (

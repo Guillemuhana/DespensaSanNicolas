@@ -593,7 +593,6 @@ export default function Butcher() {
         <InvoiceImport
           products={allProducts}
           suppliers={suppliers}
-          defaultExpenseCategory="frigorifico"
           onClose={() => setShowInvoice(false)}
           onDone={(result) => {
             setShowInvoice(false)

@@ -416,7 +416,7 @@ export async function createPurchaseInvoice(invoice) {
 export async function fetchRecentPurchaseInvoices(limit = 300) {
   const { data, error } = await supabase
     .from('purchase_invoices')
-    .select('supplier_id, invoice_number, invoice_date, total, created_at')
+    .select('id, supplier_id, invoice_number, invoice_date, total, lines, created_at')
     .order('created_at', { ascending: false })
     .limit(limit)
   if (missingTable(error)) return []

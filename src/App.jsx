@@ -30,10 +30,13 @@ import Expenses from './pages/Expenses'
 import Suppliers from './pages/Suppliers'
 import Reminders from './pages/Reminders'
 
+// Agrupado por lo que se hace en el local: vender, manejar la mercadería
+// (lo que se compra para revender) y llevar los números del negocio.
 // Facturación primero: es la pantalla donde se pasa el día.
 const TABS = [
   {
     id: 'pos',
+    section: 'Ventas',
     label: 'Facturación',
     icon: ScanBarcode,
     Page: POS,
@@ -42,16 +45,18 @@ const TABS = [
     printLabel: null, // el ticket se imprime desde el cobro
   },
   {
-    id: 'home',
-    label: 'Resumen',
-    icon: LayoutDashboard,
-    Page: Dashboard,
-    title: 'Resumen',
-    description: 'Cómo viene el negocio',
-    printLabel: 'Imprimir reporte',
+    id: 'accounts',
+    section: 'Ventas',
+    label: 'Cuentas corrientes',
+    icon: Wallet,
+    Page: Accounts,
+    title: 'Cuentas corrientes',
+    description: 'Lo que fían los clientes y lo que van pagando',
+    printLabel: 'Imprimir resumen',
   },
   {
     id: 'stock',
+    section: 'Mercadería',
     label: 'Stock',
     icon: Package,
     Page: Stock,
@@ -61,6 +66,7 @@ const TABS = [
   },
   {
     id: 'butcher',
+    section: 'Mercadería',
     label: 'Carnicería',
     icon: Beef,
     Page: Butcher,
@@ -69,40 +75,44 @@ const TABS = [
     printLabel: 'Imprimir precios',
   },
   {
-    id: 'accounts',
-    label: 'Cuentas corrientes',
-    icon: Wallet,
-    Page: Accounts,
-    title: 'Cuentas corrientes',
-    description: 'Lo que fían los clientes y lo que van pagando',
-    printLabel: 'Imprimir resumen',
-  },
-  {
-    id: 'reminders',
-    label: 'Recordatorios',
-    icon: Bell,
-    Page: Reminders,
-    title: 'Recordatorios',
-    description: 'Pedidos, pagos y vencimientos',
-    printLabel: 'Imprimir pendientes',
-  },
-  {
     id: 'suppliers',
-    label: 'Proveedores',
+    section: 'Mercadería',
+    label: 'Compras',
     icon: Truck,
     Page: Suppliers,
-    title: 'Proveedores',
-    description: 'A quién le comprás y cuándo reparte',
+    title: 'Compras',
+    description: 'Facturas de proveedores y a quién le comprás',
     printLabel: 'Imprimir listado',
   },
   {
+    id: 'home',
+    section: 'Negocio',
+    label: 'Resumen',
+    icon: LayoutDashboard,
+    Page: Dashboard,
+    title: 'Resumen',
+    description: 'Cómo viene el negocio',
+    printLabel: 'Imprimir reporte',
+  },
+  {
     id: 'expenses',
+    section: 'Negocio',
     label: 'Gastos',
     icon: ReceiptText,
     Page: Expenses,
     title: 'Gastos',
     description: 'Impuestos, luz, gas, agua, alquiler y más',
     printLabel: 'Imprimir gastos',
+  },
+  {
+    id: 'reminders',
+    section: 'Negocio',
+    label: 'Recordatorios',
+    icon: Bell,
+    Page: Reminders,
+    title: 'Recordatorios',
+    description: 'Pedidos, pagos y vencimientos',
+    printLabel: 'Imprimir pendientes',
   },
 ]
 
@@ -352,46 +362,47 @@ function Sidebar({ tab, go, onLogout, collapsed, onToggle, onClose, layoutId, cl
         )}
       </div>
 
-      <nav className={`flex-1 space-y-1 ${expanded ? 'px-3' : 'px-2.5'}`}>
-        <p
-          className={`eyebrow px-2 pb-2 pt-3 text-inkfaint/70 transition-opacity duration-200 ${
-            expanded ? 'opacity-100' : 'opacity-0'
-          }`}
-        >
-          Menú
-        </p>
-        {TABS.map((t) => {
+      <nav className={`scroll-soft min-h-0 flex-1 space-y-1 overflow-y-auto ${expanded ? 'px-3' : 'px-2.5'}`}>
+        {TABS.map((t, i) => {
           const active = tab === t.id
           const Icon = t.icon
+          const newSection = i === 0 || TABS[i - 1].section !== t.section
           return (
-            <button
-              key={t.id}
-              onClick={() => go(t.id)}
-              aria-current={active ? 'page' : undefined}
-              title={expanded ? undefined : t.label}
-              className={`group relative flex w-full items-center rounded-xl text-left text-sm font-semibold transition-colors ${
-                expanded ? 'gap-3 px-3 py-2.5' : 'justify-center px-0 py-3'
-              } ${active ? 'text-awning-dark' : 'text-inkfaint hover:bg-paper2/70 hover:text-ink'}`}
-            >
-              {active && (
-                <motion.span
-                  layoutId={layoutId}
-                  className="absolute inset-0 rounded-xl bg-awning-50 ring-1 ring-awning-100"
-                  transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-                />
-              )}
-              <Icon size={19} strokeWidth={2.2} className="relative shrink-0" />
-              {expanded && (
-                <motion.span
-                  initial={{ opacity: 0, x: -4 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.18, ease: 'easeOut' }}
-                  className="relative truncate"
-                >
-                  {t.label}
-                </motion.span>
-              )}
-            </button>
+            <div key={t.id}>
+              {newSection &&
+                (expanded ? (
+                  <p className="eyebrow px-2 pb-1.5 pt-4 text-inkfaint/70">{t.section}</p>
+                ) : (
+                  i > 0 && <div className="mx-2 my-2 border-t border-line" />
+                ))}
+              <button
+                onClick={() => go(t.id)}
+                aria-current={active ? 'page' : undefined}
+                title={expanded ? undefined : t.label}
+                className={`group relative flex w-full items-center rounded-xl text-left text-sm font-semibold transition-colors ${
+                  expanded ? 'gap-3 px-3 py-2.5' : 'justify-center px-0 py-3'
+                } ${active ? 'text-awning-dark' : 'text-inkfaint hover:bg-paper2/70 hover:text-ink'}`}
+              >
+                {active && (
+                  <motion.span
+                    layoutId={layoutId}
+                    className="absolute inset-0 rounded-xl bg-awning-50 ring-1 ring-awning-100"
+                    transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                  />
+                )}
+                <Icon size={19} strokeWidth={2.2} className="relative shrink-0" />
+                {expanded && (
+                  <motion.span
+                    initial={{ opacity: 0, x: -4 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.18, ease: 'easeOut' }}
+                    className="relative truncate"
+                  >
+                    {t.label}
+                  </motion.span>
+                )}
+              </button>
+            </div>
           )
         })}
       </nav>

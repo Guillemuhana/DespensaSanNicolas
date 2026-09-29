@@ -11,6 +11,10 @@ import {
   fetchReminders,
 } from '../lib/queries'
 
+// Categorías de gasto que en realidad eran compras de mercadería (antes de
+// que existiera Compras). No cuentan como gasto del negocio.
+const PURCHASE_CATEGORIES = ['mercaderia', 'frigorifico']
+
 // Curva de salida suave, la misma en toda la app.
 const EASE = [0.22, 1, 0.36, 1]
 const grow = (delay = 0) => ({
@@ -194,7 +198,11 @@ export default function Dashboard() {
       const rows = sales.filter((v) => inPeriod[key](new Date(v.created_at)))
       const ventas = rows.reduce((a, v) => a + Number(v.total), 0)
       const costo = rows.reduce((a, v) => a + Number(v.cost_total || 0), 0)
+      // Las compras de mercadería no son gastos: su costo ya está en `costo`
+      // (lo vendido a precio de compra). Las que se cargaron como gasto antes
+      // de separar Compras de Gastos se ignoran para no restarlas dos veces.
       const gastos = expenses
+        .filter((e) => !PURCHASE_CATEGORIES.includes(e.category))
         .filter((e) => inPeriod[key](new Date(e.spent_on + 'T00:00:00')))
         .reduce((a, e) => a + Number(e.amount), 0)
       return { ventas, costo, bruta: ventas - costo, gastos, neto: ventas - costo - gastos }
