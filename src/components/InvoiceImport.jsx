@@ -51,7 +51,13 @@ function niceName(s) {
  * al confirmar suma el stock, actualiza costos y proveedor, y aprende qué
  * renglón es qué producto para la próxima.
  */
-export default function InvoiceImport({ products, suppliers, onDone, onClose }) {
+export default function InvoiceImport({
+  products,
+  suppliers,
+  defaultExpenseCategory = 'mercaderia',
+  onDone,
+  onClose,
+}) {
   const [step, setStep] = useState('pick') // pick | reading | review | saving
   const [error, setError] = useState(null)
   const [invoice, setInvoice] = useState(null) // lo que devolvió el servidor
@@ -61,7 +67,7 @@ export default function InvoiceImport({ products, suppliers, onDone, onClose }) 
   const [rows, setRows] = useState([])
   const [addIva, setAddIva] = useState(true)
   const [registerExpense, setRegisterExpense] = useState(true)
-  const [expenseCategory, setExpenseCategory] = useState('mercaderia')
+  const [expenseCategory, setExpenseCategory] = useState(defaultExpenseCategory)
   const [expenseAmount, setExpenseAmount] = useState('')
   const [duplicate, setDuplicate] = useState(null)
   const cameraRef = useRef(null)

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import {
+  Beef,
   Bell,
   LayoutDashboard,
   Menu,
@@ -22,6 +23,8 @@ import PrintHeader from './components/PrintHeader'
 import Dashboard from './pages/Dashboard'
 import POS from './pages/POS'
 import Stock from './pages/Stock'
+import Butcher from './pages/Butcher'
+import PlaceClock from './components/PlaceClock'
 import Accounts from './pages/Accounts'
 import Expenses from './pages/Expenses'
 import Suppliers from './pages/Suppliers'
@@ -55,6 +58,15 @@ const TABS = [
     title: 'Stock',
     description: 'Productos, precios y reposición',
     printLabel: 'Imprimir lista',
+  },
+  {
+    id: 'butcher',
+    label: 'Carnicería',
+    icon: Beef,
+    Page: Butcher,
+    title: 'Carnicería',
+    description: 'Cortes, precios por kilo y lo que entró del frigorífico',
+    printLabel: 'Imprimir precios',
   },
   {
     id: 'accounts',
@@ -292,14 +304,6 @@ function Sidebar({ tab, go, onLogout, collapsed, onToggle, onClose, layoutId, cl
     setHovering(false)
   }
 
-  const raw = new Date().toLocaleDateString('es-AR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  })
-  // Sólo la primera letra: `capitalize` de CSS daría "Jueves, 27 De Agosto".
-  const today = raw.charAt(0).toUpperCase() + raw.slice(1)
-
   return (
     <aside
       onMouseEnter={handleEnter}
@@ -398,7 +402,7 @@ function Sidebar({ tab, go, onLogout, collapsed, onToggle, onClose, layoutId, cl
             <p className="truncate font-display text-sm font-semibold text-ink">
               El Baratillo
             </p>
-            <p className="mt-0.5 truncate text-xs text-inkfaint">{today}</p>
+            <PlaceClock />
             <button
               onClick={onLogout}
               className="mt-2.5 flex items-center gap-1.5 text-xs font-semibold text-inkfaint transition-colors hover:text-brick"
@@ -408,6 +412,8 @@ function Sidebar({ tab, go, onLogout, collapsed, onToggle, onClose, layoutId, cl
             </button>
           </>
         ) : (
+          <>
+          <PlaceClock compact />
           <button
             onClick={onLogout}
             aria-label="Salir"
@@ -416,6 +422,7 @@ function Sidebar({ tab, go, onLogout, collapsed, onToggle, onClose, layoutId, cl
           >
             <LogOut size={18} strokeWidth={2.4} />
           </button>
+          </>
         )}
       </div>
     </aside>

@@ -15,7 +15,7 @@ import TicketPrint from '../components/TicketPrint'
 import { printTicket } from '../lib/print'
 import useBarcodeScanner from '../lib/useBarcodeScanner'
 import CameraScanner from '../components/CameraScanner'
-import { CATEGORIES, BUTCHER_FILTER, matchesCategory } from '../lib/categories'
+import { CATEGORIES, matchesCategory } from '../lib/categories'
 import { cameraAvailable } from '../lib/camera'
 import { sameBarcode } from '../lib/barcode'
 import { Camera, ChevronDown, Plus, Printer, ScanBarcode } from 'lucide-react'
@@ -304,19 +304,6 @@ export default function POS() {
     // En escritorio son dos columnas y el ticket queda pegado al scroll.
     <div className="grid grid-cols-[minmax(0,1fr)] gap-4 pb-24 lg:grid-cols-[1fr_400px] lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-6 lg:pb-0">
       <div className="order-1 flex flex-col gap-3 lg:col-start-1 lg:row-start-1">
-        <button
-          type="button"
-          aria-pressed={showCatalog && catFilter === BUTCHER_FILTER && !query}
-          onClick={() => {
-            setBarcode('')
-            setUnknownCode(null)
-            setCatFilter(BUTCHER_FILTER)
-            setShowCatalog(true)
-          }}
-          className="self-start rounded-xl border border-awning bg-awning-50 px-4 py-2 text-sm font-semibold text-awning-dark transition-colors hover:bg-awning-100"
-        >
-          Carnicería · ver cortes
-        </button>
         <form onSubmit={handleScan}>
           <div className="mb-2 flex items-end justify-between gap-3">
             <label htmlFor="scan" className="eyebrow text-inkfaint block">
@@ -464,17 +451,6 @@ export default function POS() {
             >
               Todos
             </button>
-            <button
-              onClick={() => setCatFilter(BUTCHER_FILTER)}
-              aria-pressed={catFilter === BUTCHER_FILTER}
-              className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
-                catFilter === BUTCHER_FILTER
-                  ? 'border-awning bg-awning text-white'
-                  : 'border-line bg-surface text-inkfaint hover:border-awning hover:text-awning'
-              }`}
-            >
-              Carnicería
-            </button>
             {usedCategories.map((c) => (
               <button
                 key={c.id}
@@ -497,9 +473,7 @@ export default function POS() {
               <p className="rounded-xl border border-dashed border-line bg-surface/60 px-4 py-8 text-center text-sm text-inkfaint">
                 {query
                   ? 'Ningún producto coincide con la búsqueda.'
-                  : catFilter === BUTCHER_FILTER
-                    ? 'Todavía no hay cortes cargados. Agregá un producto y elegí un rubro de Carnicería; la venta por kilo queda preseleccionada.'
-                    : catFilter
+                  : catFilter
                     ? 'No hay productos en ese rubro.'
                     : 'Todavía no hay productos cargados. Agregalos desde la pestaña Stock.'}
               </p>
