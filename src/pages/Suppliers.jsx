@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Mail, Phone, Trash2 } from 'lucide-react'
+import { FileText, Mail, Phone, Trash2, X } from 'lucide-react'
 import {
   fetchSuppliers,
   createSupplier,
   updateSupplier,
   deleteSupplier,
   fetchProducts,
+  fetchRecentPurchaseInvoices,
 } from '../lib/queries'
 import { friendlyError } from '../lib/friendlyError'
+import InvoiceImport from '../components/InvoiceImport'
 
-const emptyForm = { name: '', contact: '', phone: '', email: '', delivery_days: '', notes: '' }
+const emptyForm = { name: '', cuit: '', contact: '', phone: '', email: '', delivery_days: '', notes: '' }
 
 const inputClass =
   'w-full rounded-lg border border-line bg-surface px-3 py-2 transition-colors focus:border-awning focus:outline-none'
@@ -24,6 +26,9 @@ export default function Suppliers() {
   const [editingId, setEditingId] = useState(null)
   const [status, setStatus] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [invoices, setInvoices] = useState([])
+  const [showInvoice, setShowInvoice] = useState(false)
+  const [notice, setNotice] = useState(null) // resultado de la última factura cargada
 
   useEffect(() => {
     load()
@@ -31,9 +36,14 @@ export default function Suppliers() {
 
   async function load() {
     try {
-      const [s, p] = await Promise.all([fetchSuppliers(), fetchProducts()])
+      const [s, p, inv] = await Promise.all([
+        fetchSuppliers(),
+        fetchProducts(),
+        fetchRecentPurchaseInvoices().catch(() => []),
+      ])
       setSuppliers(s)
       setProducts(p)
+      setInvoices(inv)
       setStatus(null)
     } catch (err) {
       setStatus(friendlyError(err.message, 'suppliers'))
@@ -51,10 +61,23 @@ export default function Suppliers() {
     return map
   }, [products])
 
+  // La última factura cargada de cada uno (vienen ordenadas, la primera gana).
+  const lastInvoice = useMemo(() => {
+    const map = {}
+    for (const inv of invoices) {
+      if (inv.supplier_id && !map[inv.supplier_id]) map[inv.supplier_id] = inv
+    }
+    return map
+  }, [invoices])
+
+  // La columna cuit llega con la migración 008: sin ella no se manda.
+  const hasCuit = suppliers.some((s) => 'cuit' in s)
+
   function startEdit(s) {
     setEditingId(s.id)
     setForm({
       name: s.name,
+      cuit: s.cuit || '',
       contact: s.contact || '',
       phone: s.phone || '',
       email: s.email || '',
@@ -72,6 +95,7 @@ export default function Suppliers() {
     e.preventDefault()
     const payload = {
       name: form.name.trim(),
+      ...(hasCuit ? { cuit: form.cuit.trim() || null } : {}),
       contact: form.contact.trim() || null,
       phone: form.phone.trim() || null,
       email: form.email.trim() || null,
@@ -101,6 +125,42 @@ export default function Suppliers() {
   return (
     <div className="grid gap-4 md:grid-cols-[1fr_340px] md:gap-6">
       <div>
+        <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-inkfaint">
+            Cargá la factura y el proveedor, el stock y los costos se actualizan solos.
+          </p>
+          <button
+            onClick={() => setShowInvoice(true)}
+            className="flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-awning px-3.5 py-2 text-sm font-semibold text-white shadow-card transition-colors hover:bg-awning-dark"
+          >
+            <FileText size={16} strokeWidth={2.4} />
+            Cargar factura
+          </button>
+        </div>
+
+        {notice && (
+          <div className="mb-4 rounded-xl border border-awning-100 bg-awning-50 px-4 py-3 text-sm text-awning-dark">
+            <div className="flex items-start justify-between gap-3">
+              <p className="font-semibold">
+                Factura de {notice.supplier} cargada: {notice.applied.length}{' '}
+                {notice.applied.length === 1 ? 'producto actualizado' : 'productos actualizados'}.
+              </p>
+              <button
+                onClick={() => setNotice(null)}
+                aria-label="Cerrar aviso"
+                className="shrink-0 rounded-full p-0.5 hover:bg-awning-100"
+              >
+                <X size={14} strokeWidth={2.6} />
+              </button>
+            </div>
+            <ul className="mt-1.5 space-y-0.5 text-xs">
+              {notice.applied.map((line, i) => (
+                <li key={i}>{line}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {status && (
           <div className="mb-4 rounded-xl border border-brick-100 bg-brick-50 px-4 py-3 text-sm font-medium text-brick-dark">
             {status}
@@ -127,6 +187,7 @@ export default function Suppliers() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="break-words font-display font-semibold text-ink">{s.name}</p>
+                    {s.cuit && <p className="font-mono text-xs text-inkfaint">CUIT {s.cuit}</p>}
                     {s.contact && <p className="text-sm text-inkfaint">{s.contact}</p>}
                   </div>
                   <button
@@ -169,6 +230,25 @@ export default function Suppliers() {
 
                 {s.notes && <p className="mt-2 text-sm text-inkfaint">{s.notes}</p>}
 
+                {lastInvoice[s.id] && (
+                  <p className="mt-2 text-xs text-inkfaint">
+                    Última factura:{' '}
+                    {new Date(
+                      lastInvoice[s.id].invoice_date
+                        ? lastInvoice[s.id].invoice_date + 'T12:00:00'
+                        : lastInvoice[s.id].created_at
+                    ).toLocaleDateString('es-AR')}
+                    {lastInvoice[s.id].total != null && (
+                      <>
+                        {' '}·{' '}
+                        <span className="font-semibold text-ink">
+                          ${Number(lastInvoice[s.id].total).toLocaleString('es-AR', { maximumFractionDigits: 2 })}
+                        </span>
+                      </>
+                    )}
+                  </p>
+                )}
+
                 <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-3 text-sm">
                   <span className="text-inkfaint">
                     {countBySupplier[s.id] || 0}{' '}
@@ -205,6 +285,21 @@ export default function Suppliers() {
               className={inputClass}
             />
           </div>
+          {hasCuit && (
+            <div>
+              <label htmlFor="sup-cuit" className="mb-1.5 block text-xs font-semibold text-inkfaint">
+                CUIT
+              </label>
+              <input
+                id="sup-cuit"
+                value={form.cuit}
+                onChange={(e) => setForm({ ...form, cuit: e.target.value })}
+                placeholder="30-71234567-8"
+                inputMode="numeric"
+                className={`${inputClass} font-mono`}
+              />
+            </div>
+          )}
           <div>
             <label
               htmlFor="sup-contact"
@@ -288,6 +383,19 @@ export default function Suppliers() {
           </div>
         </form>
       </div>
+
+      {showInvoice && (
+        <InvoiceImport
+          products={products}
+          suppliers={suppliers}
+          onClose={() => setShowInvoice(false)}
+          onDone={(result) => {
+            setShowInvoice(false)
+            setNotice(result)
+            load()
+          }}
+        />
+      )}
     </div>
   )
 }

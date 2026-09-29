@@ -400,6 +400,18 @@ export async function createPurchaseInvoice(invoice) {
   if (error) throw error
 }
 
+/** Las últimas facturas cargadas, para mostrar en cada proveedor. */
+export async function fetchRecentPurchaseInvoices(limit = 300) {
+  const { data, error } = await supabase
+    .from('purchase_invoices')
+    .select('supplier_id, invoice_number, invoice_date, total, created_at')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (missingTable(error)) return []
+  if (error) throw error
+  return data
+}
+
 /** Actualiza el proveedor sin romper si la columna cuit todavía no existe. */
 export async function setSupplierCuit(id, cuit) {
   const { error } = await supabase.from('suppliers').update({ cuit }).eq('id', id)
