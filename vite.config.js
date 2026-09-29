@@ -1,6 +1,6 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
-import { leerFactura } from './server/leerFactura.js'
+import { checkSession, leerFactura } from './server/leerFactura.js'
 
 // En producción /api/leer-factura es una función de Vercel. En `npm run dev`
 // no hay Vercel, así que la misma lógica se sirve desde acá, con la clave de
@@ -17,6 +17,10 @@ function apiDev(env) {
         }
         if (req.method !== 'POST') return send(405, { error: 'Usá POST.' })
         try {
+          await checkSession(req.headers.authorization, {
+            url: env.VITE_SUPABASE_URL,
+            anonKey: env.VITE_SUPABASE_ANON_KEY,
+          })
           const chunks = []
           for await (const chunk of req) chunks.push(chunk)
           const body = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}')

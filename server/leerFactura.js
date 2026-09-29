@@ -166,3 +166,18 @@ function httpError(status, message) {
   err.status = status
   return err
 }
+
+/**
+ * Confirma que el pedido viene de alguien que inició sesión en la app: le
+ * pregunta a Supabase de quién es el token. Sin esto, cualquiera con el link
+ * podría gastar el cupo de Groq.
+ */
+export async function checkSession(authHeader, { url, anonKey }) {
+  const token = String(authHeader || '').replace(/^Bearer\s+/i, '')
+  if (!token) throw httpError(401, 'Iniciá sesión para leer facturas.')
+  if (!url || !anonKey) throw httpError(500, 'Falta configurar Supabase en el servidor.')
+  const res = await fetch(`${url}/auth/v1/user`, {
+    headers: { apikey: anonKey, Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) throw httpError(401, 'La sesión venció. Salí y volvé a entrar.')
+}

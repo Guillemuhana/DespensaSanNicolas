@@ -1,4 +1,4 @@
-import { leerFactura } from '../server/leerFactura.js'
+import { checkSession, leerFactura } from '../server/leerFactura.js'
 
 // La foto de una factura puede pesar varios MB en base64.
 export const config = { api: { bodyParser: { sizeLimit: '6mb' } } }
@@ -19,6 +19,10 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: 'Origen no permitido.' })
   }
   try {
+    await checkSession(req.headers.authorization, {
+      url: process.env.VITE_SUPABASE_URL,
+      anonKey: process.env.VITE_SUPABASE_ANON_KEY,
+    })
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {}
     const result = await leerFactura(body, {
       apiKey: process.env.GROQ_API_KEY,

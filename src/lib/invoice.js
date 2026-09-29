@@ -1,5 +1,6 @@
 import { resizeImage } from './image'
 import { sameBarcode } from './barcode'
+import { supabase } from './supabaseClient'
 
 // ---------- Preparar el archivo ----------
 
@@ -89,11 +90,17 @@ export async function readInvoice(payload, { onWait } = {}) {
 }
 
 async function readInvoiceOnce(payload) {
+  // El servidor sólo lee facturas de quien inició sesión.
+  const { data: auth } = await supabase.auth.getSession()
+  const token = auth.session?.access_token
   let res
   try {
     res = await fetch('/api/leer-factura', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: JSON.stringify(payload),
     })
   } catch {

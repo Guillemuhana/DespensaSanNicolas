@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import { AnimatePresence, motion, useAnimationControls } from 'motion/react'
-import { ArrowRight, Check, Eye, EyeOff, Lock } from 'lucide-react'
-
-// La contraseña se valida en el navegador: sirve para que no entre cualquiera
-// que abra el link, no como seguridad fuerte (queda dentro del JS publicado).
-const PASSWORD = '+6Elbaratillo27'
+import { ArrowRight, Check, Eye, EyeOff, Lock, User } from 'lucide-react'
+import { signIn } from '../lib/auth'
 
 const EASE = [0.22, 1, 0.36, 1]
 
-export default function Login({ onLogin }) {
+// Cada persona entra con su usuario (vanesa, gabriel...) y su contraseña. La
+// valida Supabase: la app no guarda ninguna contraseña.
+export default function Login() {
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [busy, setBusy] = useState(false)
   const [show, setShow] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
@@ -17,17 +18,21 @@ export default function Login({ onLogin }) {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (success) return
-    if (password !== PASSWORD) {
-      setError('Contraseña incorrecta')
+    if (success || busy) return
+    setBusy(true)
+    setError(null)
+    try {
+      await signIn(username, password)
+      // La app cambia sola cuando Supabase avisa que hay sesión; el tilde se
+      // alcanza a ver mientras tanto.
+      setSuccess(true)
+    } catch (err) {
+      setError(err.message)
       setPassword('')
       shake.start({ x: [0, -12, 12, -8, 8, -4, 4, 0], transition: { duration: 0.45 } })
-      return
+    } finally {
+      setBusy(false)
     }
-    setError(null)
-    setSuccess(true)
-    // Un instante para que se vea el tilde antes de entrar.
-    setTimeout(onLogin, 650)
   }
 
   return (
@@ -72,6 +77,39 @@ export default function Login({ onLogin }) {
             transition={{ duration: 0.6, delay: 0.4, ease: EASE }}
             className="mt-8"
           >
+            <label htmlFor="login-user" className="sr-only">
+              Usuario
+            </label>
+            <div
+              className={`group relative mb-3 flex items-center rounded-2xl border-2 bg-white transition-colors ${
+                error ? 'border-brick' : 'border-line focus-within:border-awning'
+              }`}
+            >
+              <User
+                size={18}
+                className={`pointer-events-none absolute left-4 transition-colors ${
+                  error ? 'text-brick' : 'text-inkfaint group-focus-within:text-awning'
+                }`}
+              />
+              <input
+                id="login-user"
+                type="text"
+                required
+                autoFocus
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value)
+                  if (error) setError(null)
+                }}
+                placeholder="Usuario"
+                className="w-full rounded-2xl bg-transparent py-3.5 pl-11 pr-4 text-base text-ink placeholder:text-inkfaint/70 focus:outline-none"
+              />
+            </div>
+
             <label htmlFor="login-password" className="sr-only">
               Contraseña
             </label>
@@ -90,7 +128,6 @@ export default function Login({ onLogin }) {
                 id="login-password"
                 type={show ? 'text' : 'password'}
                 required
-                autoFocus
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => {
@@ -161,8 +198,8 @@ export default function Login({ onLogin }) {
                   exit={{ opacity: 0, y: -8 }}
                   className="relative flex items-center gap-2"
                 >
-                  Entrar
-                  <ArrowRight size={18} strokeWidth={2.5} />
+                  {busy ? 'Entrando...' : 'Entrar'}
+                  {!busy && <ArrowRight size={18} strokeWidth={2.5} />}
                 </motion.span>
               )}
             </AnimatePresence>
