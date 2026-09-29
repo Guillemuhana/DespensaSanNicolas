@@ -11,10 +11,11 @@ import {
 import { resizeImage } from '../lib/image'
 import RestockModal from '../components/RestockModal'
 import CameraScanner from '../components/CameraScanner'
+import InvoiceImport from '../components/InvoiceImport'
 import { cameraAvailable } from '../lib/camera'
 import { sameBarcode } from '../lib/barcode'
 import { friendlyError } from '../lib/friendlyError'
-import { Camera, ImagePlus, ScanBarcode, X } from 'lucide-react'
+import { Camera, FileText, ImagePlus, ScanBarcode, X } from 'lucide-react'
 import { GROUPED, labelOf, BUTCHER_FILTER, isButcherCategory, matchesCategory } from '../lib/categories'
 
 const emptyForm = {
@@ -46,6 +47,8 @@ export default function Stock() {
   // escaneado y lo abre para editar, o arranca el alta con ese código.
   const [showCamera, setShowCamera] = useState(null)
   const [photoBusy, setPhotoBusy] = useState(false)
+  const [showInvoice, setShowInvoice] = useState(false)
+  const [notice, setNotice] = useState(null) // resultado de la última factura cargada
   const formRef = useRef(null)
   const barcodeRef = useRef(null)
   const nameRef = useRef(null)
@@ -281,6 +284,13 @@ export default function Stock() {
               {noCodeCount} sin código
             </span>
           )}
+          <button
+            onClick={() => setShowInvoice(true)}
+            className="flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-awning bg-awning-50 px-3 py-2 text-sm font-semibold text-awning-dark shadow-card transition-colors hover:bg-awning-100"
+          >
+            <FileText size={16} strokeWidth={2.4} />
+            Cargar factura
+          </button>
           {cameraAvailable && (
             <button
               onClick={() => setShowCamera('lookup')}
@@ -302,6 +312,29 @@ export default function Stock() {
             Cargar producto
           </button>
         </div>
+
+        {notice && (
+          <div className="mb-4 rounded-xl border border-awning-100 bg-awning-50 px-4 py-3 text-sm text-awning-dark">
+            <div className="flex items-start justify-between gap-3">
+              <p className="font-semibold">
+                Factura de {notice.supplier} cargada: {notice.applied.length}{' '}
+                {notice.applied.length === 1 ? 'producto actualizado' : 'productos actualizados'}.
+              </p>
+              <button
+                onClick={() => setNotice(null)}
+                aria-label="Cerrar aviso"
+                className="shrink-0 rounded-full p-0.5 hover:bg-awning-100"
+              >
+                <X size={14} strokeWidth={2.6} />
+              </button>
+            </div>
+            <ul className="mt-1.5 space-y-0.5 text-xs">
+              {notice.applied.map((line, i) => (
+                <li key={i}>{line}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {status && (
           <div className="mb-4 rounded-xl border border-brick-100 bg-brick-50 px-4 py-3 text-sm font-medium text-brick-dark">
@@ -811,6 +844,20 @@ export default function Stock() {
           hint="Si ya está cargado se abre para editar; si no, arrancás el alta con el código puesto."
           onDetect={handleLookupScan}
           onClose={() => setShowCamera(null)}
+        />
+      )}
+
+      {showInvoice && (
+        <InvoiceImport
+          products={products}
+          suppliers={suppliers}
+          onClose={() => setShowInvoice(false)}
+          onDone={(result) => {
+            setShowInvoice(false)
+            setNotice(result)
+            setStatus(null)
+            load()
+          }}
         />
       )}
 

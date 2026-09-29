@@ -347,6 +347,66 @@ export async function deleteSupplier(id) {
   if (error) throw error
 }
 
+// ---------- Facturas de proveedor (migración 008) ----------
+
+// Si la migración 008 todavía no se corrió, estas tablas no existen: la carga
+// de facturas igual actualiza el stock, sólo que no aprende ni guarda historial.
+function missingTable(error) {
+  return error && (error.code === '42P01' || error.code === 'PGRST205' || error.code === '42703')
+}
+
+/** Lo aprendido de un proveedor: { match_key → { product_id, units_per_pack } }. */
+export async function fetchSupplierProducts(supplierId) {
+  if (!supplierId) return []
+  const { data, error } = await supabase
+    .from('supplier_products')
+    .select('*')
+    .eq('supplier_id', supplierId)
+  if (missingTable(error)) return []
+  if (error) throw error
+  return data
+}
+
+export async function saveSupplierProducts(rows) {
+  if (rows.length === 0) return
+  const { error } = await supabase
+    .from('supplier_products')
+    .upsert(
+      rows.map((r) => ({ ...r, updated_at: new Date().toISOString() })),
+      { onConflict: 'supplier_id,match_key' }
+    )
+  if (missingTable(error)) return
+  if (error) throw error
+}
+
+/** Una factura ya cargada con ese número, o null. */
+export async function findPurchaseInvoice(supplierId, invoiceNumber) {
+  if (!supplierId || !invoiceNumber) return null
+  const { data, error } = await supabase
+    .from('purchase_invoices')
+    .select('id, created_at, total')
+    .eq('supplier_id', supplierId)
+    .eq('invoice_number', invoiceNumber)
+    .limit(1)
+    .maybeSingle()
+  if (missingTable(error)) return null
+  if (error) throw error
+  return data
+}
+
+export async function createPurchaseInvoice(invoice) {
+  const { error } = await supabase.from('purchase_invoices').insert(invoice)
+  if (missingTable(error)) return
+  if (error) throw error
+}
+
+/** Actualiza el proveedor sin romper si la columna cuit todavía no existe. */
+export async function setSupplierCuit(id, cuit) {
+  const { error } = await supabase.from('suppliers').update({ cuit }).eq('id', id)
+  if (missingTable(error)) return
+  if (error) throw error
+}
+
 // ---------- Recordatorios ----------
 
 export async function fetchReminders() {
