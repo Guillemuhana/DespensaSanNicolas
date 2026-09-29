@@ -12,9 +12,10 @@ import { resizeImage } from '../lib/image'
 import RestockModal from '../components/RestockModal'
 import CameraScanner from '../components/CameraScanner'
 import { cameraAvailable } from '../lib/camera'
+import { sameBarcode } from '../lib/barcode'
 import { friendlyError } from '../lib/friendlyError'
 import { Camera, ImagePlus, ScanBarcode, X } from 'lucide-react'
-import { GROUPED, labelOf } from '../lib/categories'
+import { GROUPED, labelOf, BUTCHER_FILTER, isButcherCategory, matchesCategory } from '../lib/categories'
 
 const emptyForm = {
   name: '',
@@ -41,10 +42,13 @@ export default function Stock() {
   const [status, setStatus] = useState(null)
   const [suppliers, setSuppliers] = useState([])
   const [restocking, setRestocking] = useState(null)
-  const [showCamera, setShowCamera] = useState(false)
+  // 'form': completa el código del formulario. 'lookup': busca el producto
+  // escaneado y lo abre para editar, o arranca el alta con ese código.
+  const [showCamera, setShowCamera] = useState(null)
   const [photoBusy, setPhotoBusy] = useState(false)
   const formRef = useRef(null)
   const barcodeRef = useRef(null)
+  const nameRef = useRef(null)
   const photoRef = useRef(null)
 
   useEffect(() => {
@@ -105,6 +109,22 @@ export default function Stock() {
       formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
     setTimeout(() => barcodeRef.current?.focus(), 60)
+  }
+
+  // Escaneo desde la lista: si el producto ya está se abre para editar (precio,
+  // stock); si no, arranca el alta con el código ya puesto.
+  function handleLookupScan(code) {
+    setShowCamera(null)
+    setStatus(null)
+    const found = products.find((p) => sameBarcode(code, p.barcode))
+    if (found) {
+      startEdit(found)
+      return
+    }
+    setEditingId(null)
+    setForm({ ...emptyForm, barcode: code })
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setTimeout(() => nameRef.current?.focus(), 350)
   }
 
   // Código interno para lo que no viene con código de barras impreso (sueltos,
@@ -182,7 +202,7 @@ export default function Stock() {
   const filtered = products.filter(
     (p) =>
       (p.name.toLowerCase().includes(search.toLowerCase()) || p.barcode?.includes(search)) &&
-      (!category || p.category === category)
+      matchesCategory(p.category, category)
   )
   const lowCount = products.filter((p) => Number(p.stock) <= Number(p.min_stock)).length
   const noCodeCount = products.filter((p) => !p.barcode).length
@@ -190,7 +210,7 @@ export default function Stock() {
   // Dos productos con el mismo código romperían el escaneo: se avisa antes.
   const barcodeValue = form.barcode.trim()
   const duplicate = barcodeValue
-    ? products.find((p) => p.barcode === barcodeValue && p.id !== editingId)
+    ? products.find((p) => sameBarcode(barcodeValue, p.barcode) && p.id !== editingId)
     : null
 
   // Margen en vivo mientras se carga el producto.
@@ -240,6 +260,7 @@ export default function Stock() {
             }`}
           >
             <option value="">Todos los rubros</option>
+            <option value={BUTCHER_FILTER}>Carnicería · todos los cortes</option>
               {GROUPED.map((g) => (
               <optgroup key={g.group} label={g.group}>
                 {g.items.map((c) => (
@@ -260,9 +281,22 @@ export default function Stock() {
               {noCodeCount} sin código
             </span>
           )}
+          {cameraAvailable && (
+            <button
+              onClick={() => setShowCamera('lookup')}
+              className="flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-awning px-3 py-2 text-sm font-semibold text-white shadow-card transition-colors hover:bg-awning-dark md:hidden"
+            >
+              <Camera size={16} strokeWidth={2.4} />
+              Escanear
+            </button>
+          )}
           <button
             onClick={startNew}
-            className="flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-awning px-3 py-2 text-sm font-semibold text-white shadow-card transition-colors hover:bg-awning-dark md:hidden"
+            className={`flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-semibold shadow-card transition-colors md:hidden ${
+              cameraAvailable
+                ? 'border border-line bg-surface text-inkfaint hover:border-awning hover:text-awning'
+                : 'bg-awning text-white hover:bg-awning-dark'
+            }`}
           >
             <ScanBarcode size={16} strokeWidth={2.4} />
             Cargar producto
@@ -516,6 +550,7 @@ export default function Stock() {
             </label>
             <input
               id="prod-name"
+              ref={nameRef}
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -562,7 +597,7 @@ export default function Stock() {
               {cameraAvailable && (
                 <button
                   type="button"
-                  onClick={() => setShowCamera(true)}
+                  onClick={() => setShowCamera('form')}
                   aria-label="Leer el código con la cámara"
                   className="flex shrink-0 items-center justify-center rounded-lg border border-line px-3 text-inkfaint transition-colors hover:border-awning hover:text-awning"
                 >
@@ -694,7 +729,11 @@ export default function Stock() {
             <select
               id="prod-category"
               value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
+              onChange={(e) => setForm({
+                ...form,
+                category: e.target.value,
+                sale_type: !editingId && isButcherCategory(e.target.value) ? 'weight' : form.sale_type,
+              })}
               className={inputClass}
             >
               <option value="">—</option>
@@ -753,15 +792,25 @@ export default function Stock() {
         </form>
       </div>
 
-      {showCamera && (
+      {showCamera === 'form' && (
         <CameraScanner
           title="Leer el código del producto"
           hint="Apuntá al código de barras del envase. Se copia solo al formulario."
           onDetect={(code) => {
             setForm((f) => ({ ...f, barcode: code }))
-            setShowCamera(false)
+            setShowCamera(null)
+            if (!form.name.trim()) setTimeout(() => nameRef.current?.focus(), 100)
           }}
-          onClose={() => setShowCamera(false)}
+          onClose={() => setShowCamera(null)}
+        />
+      )}
+
+      {showCamera === 'lookup' && (
+        <CameraScanner
+          title="Escanear producto"
+          hint="Si ya está cargado se abre para editar; si no, arrancás el alta con el código puesto."
+          onDetect={handleLookupScan}
+          onClose={() => setShowCamera(null)}
         />
       )}
 

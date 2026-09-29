@@ -66,3 +66,10 @@ export const GROUPED = CATEGORIES.reduce((acc, c) => {
 
 /** Etiqueta para mostrar. Si el rubro ya no está en la lista, cae al id. */
 export const labelOf = (id) => CATEGORIES.find((c) => c.id === id)?.label ?? id
+
+export const BUTCHER_FILTER = 'group:carniceria'
+export const isButcherCategory = (id) =>
+  CATEGORIES.some((c) => c.id === id && c.group === CARNICERIA)
+
+export const matchesCategory = (category, filter) =>
+  !filter || (filter === BUTCHER_FILTER ? isButcherCategory(category) : category === filter)

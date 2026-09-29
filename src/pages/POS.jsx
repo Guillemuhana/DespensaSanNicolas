@@ -15,8 +15,9 @@ import TicketPrint from '../components/TicketPrint'
 import { printTicket } from '../lib/print'
 import useBarcodeScanner from '../lib/useBarcodeScanner'
 import CameraScanner from '../components/CameraScanner'
-import { CATEGORIES } from '../lib/categories'
+import { CATEGORIES, BUTCHER_FILTER, matchesCategory } from '../lib/categories'
 import { cameraAvailable } from '../lib/camera'
+import { sameBarcode } from '../lib/barcode'
 import { Camera, ChevronDown, Plus, Printer, ScanBarcode } from 'lucide-react'
 
 export default function POS() {
@@ -135,7 +136,7 @@ export default function POS() {
     setStatus(null)
     setUnknownCode(null)
     try {
-      let product = products.find((p) => p.barcode === code)
+      let product = products.find((p) => sameBarcode(code, p.barcode))
       if (!product) product = await findProductByBarcode(code)
       if (!product) {
         // Enter sobre un nombre escrito a mano: si hay una sola coincidencia la
@@ -176,12 +177,27 @@ export default function POS() {
     return { outcome: 'added', name: p.name }
   }
 
-  // La cámara queda abierta mientras se sigan agregando cosas al ticket;
-  // cualquier otra cosa (peso, sin stock, código nuevo) necesita la pantalla.
+  // La cámara queda abierta mientras se sigan agregando cosas al ticket; si
+  // falta stock o falló algo se avisa ahí mismo. Lo que necesita la pantalla
+  // (peso, elegir entre varios, código nuevo) la cierra.
   async function handleCameraScan(code) {
     const res = await processCode(code)
     if (res?.outcome === 'added') {
-      setCameraHint(`Listo: ${res.name}. Seguí con el próximo.`)
+      setCameraHint({ type: 'success', text: `Listo: ${res.name}. Seguí con el próximo.` })
+      return
+    }
+    if (res?.outcome === 'nostock') {
+      setCameraHint({ type: 'error', text: `"${res.name}" no tiene stock. Seguí con el próximo.` })
+      return
+    }
+    if (res?.outcome === 'error') {
+      setCameraHint({ type: 'error', text: 'No se pudo buscar el código. Revisá la conexión.' })
+      return
+    }
+    // Código que no está cargado: se abre el alta directo, con el código puesto.
+    if (res?.outcome === 'unknown') {
+      setShowCamera(false)
+      setQuickProduct({ barcode: code })
       return
     }
     closeCamera()
@@ -194,7 +210,11 @@ export default function POS() {
 
   function closeCamera() {
     setShowCamera(false)
-    setTimeout(() => inputRef.current?.focus(), 50)
+    // En el celular enfocar el buscador abre el teclado encima de todo: sólo
+    // se hace con mouse, donde se sigue con el lector de pistola.
+    if (window.matchMedia('(pointer: fine)').matches) {
+      setTimeout(() => inputRef.current?.focus(), 50)
+    }
   }
 
   // Alta al vuelo: el producto queda cargado y entra al ticket sin salir de acá.
@@ -260,7 +280,7 @@ export default function POS() {
   const shownProducts = query
     ? results
     : catFilter
-      ? products.filter((p) => p.category === catFilter)
+      ? products.filter((p) => matchesCategory(p.category, catFilter))
       : products
   // Sólo se ofrecen los rubros que hoy tienen algo cargado.
   const usedCategories = useMemo(
@@ -284,6 +304,19 @@ export default function POS() {
     // En escritorio son dos columnas y el ticket queda pegado al scroll.
     <div className="grid grid-cols-[minmax(0,1fr)] gap-4 pb-24 lg:grid-cols-[1fr_400px] lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-6 lg:pb-0">
       <div className="order-1 flex flex-col gap-3 lg:col-start-1 lg:row-start-1">
+        <button
+          type="button"
+          aria-pressed={showCatalog && catFilter === BUTCHER_FILTER && !query}
+          onClick={() => {
+            setBarcode('')
+            setUnknownCode(null)
+            setCatFilter(BUTCHER_FILTER)
+            setShowCatalog(true)
+          }}
+          className="self-start rounded-xl border border-awning bg-awning-50 px-4 py-2 text-sm font-semibold text-awning-dark transition-colors hover:bg-awning-100"
+        >
+          Carnicería · ver cortes
+        </button>
         <form onSubmit={handleScan}>
           <div className="mb-2 flex items-end justify-between gap-3">
             <label htmlFor="scan" className="eyebrow text-inkfaint block">
@@ -419,7 +452,7 @@ export default function POS() {
           )}
         </div>
 
-        {showCatalog && !query && usedCategories.length > 0 && (
+        {showCatalog && !query && (
           <div className="scroll-soft mt-2 flex gap-1.5 overflow-x-auto pb-1">
             <button
               onClick={() => setCatFilter('')}
@@ -430,6 +463,17 @@ export default function POS() {
               }`}
             >
               Todos
+            </button>
+            <button
+              onClick={() => setCatFilter(BUTCHER_FILTER)}
+              aria-pressed={catFilter === BUTCHER_FILTER}
+              className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                catFilter === BUTCHER_FILTER
+                  ? 'border-awning bg-awning text-white'
+                  : 'border-line bg-surface text-inkfaint hover:border-awning hover:text-awning'
+              }`}
+            >
+              Carnicería
             </button>
             {usedCategories.map((c) => (
               <button
@@ -453,7 +497,9 @@ export default function POS() {
               <p className="rounded-xl border border-dashed border-line bg-surface/60 px-4 py-8 text-center text-sm text-inkfaint">
                 {query
                   ? 'Ningún producto coincide con la búsqueda.'
-                  : catFilter
+                  : catFilter === BUTCHER_FILTER
+                    ? 'Todavía no hay cortes cargados. Agregá un producto y elegí un rubro de Carnicería; la venta por kilo queda preseleccionada.'
+                    : catFilter
                     ? 'No hay productos en ese rubro.'
                     : 'Todavía no hay productos cargados. Agregalos desde la pestaña Stock.'}
               </p>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { GROUPED } from '../lib/categories'
+import { GROUPED, isButcherCategory } from '../lib/categories'
 
 const inputClass =
   'w-full rounded-lg border border-line bg-surface px-3 py-2 transition-colors focus:border-awning focus:outline-none'
@@ -94,7 +94,11 @@ export default function QuickProductModal({ barcode, onCreate, onCancel }) {
             <select
               id="quick-category"
               value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
+              onChange={(e) => setForm({
+                ...form,
+                category: e.target.value,
+                sale_type: isButcherCategory(e.target.value) ? 'weight' : form.sale_type,
+              })}
               className={inputClass}
             >
               <option value="">—</option>

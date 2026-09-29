@@ -6,9 +6,15 @@ carne y los fiambres) y cuentas corrientes.
 
 ## Cómo funciona lo de "por peso"
 
-Al escanear un producto marcado como "peso", en vez de pedir los kilos la app
-pide el monto vendido en pesos. Con el precio por kilo cargado, calcula sola
-cuántos kilos fueron y descuenta esa cantidad del stock.
+Al elegir un producto marcado como "peso", podés ingresar los kilos que marcó
+la balanza o el monto vendido en pesos. Con el precio por kilo cargado, calcula
+el importe o los kilos y descuenta esa cantidad del stock al cobrar.
+
+En Facturación, el botón **Carnicería · ver cortes** muestra vacuno, cerdo,
+pollo, achuras, chorizos, elaborados y carne picada. Stock también permite
+filtrar todos esos rubros juntos. Al cargar un producto nuevo y elegir un
+rubro de Carnicería, queda preseleccionada la venta por kilo; cargá precio y
+costo por kg, y existencias en kg. Podés cambiar a unidad si corresponde.
 
 ## Configuración
 

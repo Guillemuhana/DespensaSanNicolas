@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import { barcodeVariants } from './barcode'
 
 /**
  * La migración 002 agrega costos de compra y gastos. Mientras no se haya
@@ -56,7 +57,8 @@ export async function findProductByBarcode(barcode) {
   const { data, error } = await supabase
     .from('products')
     .select('*')
-    .eq('barcode', barcode)
+    .in('barcode', barcodeVariants(barcode))
+    .limit(1)
     .maybeSingle()
   if (error) throw error
   return data
