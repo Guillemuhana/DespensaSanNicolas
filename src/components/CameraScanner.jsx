@@ -35,8 +35,17 @@ const CONFIRM_WINDOW_MS = 1000
  * código, así dos lecturas no se pisan.
  *
  * `hint` es un texto o `{ type: 'error' | 'success', text }`.
+ *
+ * Con `onSkip` aparece un botón "Saltear", para cuando se escanea una lista
+ * en orden y un producto no tiene código.
  */
-export default function CameraScanner({ title = 'Escanear con la cámara', hint, onDetect, onClose }) {
+export default function CameraScanner({
+  title = 'Escanear con la cámara',
+  hint,
+  onDetect,
+  onSkip,
+  onClose,
+}) {
   const videoRef = useRef(null)
   const trackRef = useRef(null)
   const onDetectRef = useRef(onDetect)
@@ -386,6 +395,14 @@ export default function CameraScanner({ title = 'Escanear con la cámara', hint,
               className={torchOn ? 'rounded-full bg-white p-2.5 text-ink' : iconBtn}
             >
               {torchOn ? <Zap size={18} strokeWidth={2.4} /> : <ZapOff size={18} strokeWidth={2.4} />}
+            </button>
+          )}
+          {onSkip && (
+            <button
+              onClick={onSkip}
+              className="rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/25"
+            >
+              Saltear
             </button>
           )}
           <button

@@ -71,6 +71,7 @@ export default function InvoiceImport({
   const [duplicate, setDuplicate] = useState(null)
   const [waiting, setWaiting] = useState(0) // segundos hasta reintentar
   const [scanRow, setScanRow] = useState(null) // renglón que se está escaneando
+  const [scanInOrder, setScanInOrder] = useState(false) // pasa solo al siguiente
   const cameraRef = useRef(null)
   const fileRef = useRef(null)
 
@@ -186,6 +187,31 @@ export default function InvoiceImport({
   const active = rows.filter((r) => r.choice !== 'skip')
   const missingPrice = active.some((r) => r.choice === 'new' && !(Number(r.newPrice) > 0))
   const missingSupplier = supplierId === 'new' && !newSupplierName.trim()
+
+  // Los códigos de barras están en cada paquete, no en la factura: estos son
+  // los renglones a los que todavía les falta.
+  const needsBarcode = (r) =>
+    r.choice !== 'skip' && !productById[r.choice]?.barcode && !r.barcode.trim()
+  const pendingBarcodes = rows.filter(needsBarcode).length
+  const nextNeedingBarcode = (after) =>
+    rows.findIndex((r, i) => i > after && needsBarcode(r))
+
+  function startScanInOrder() {
+    const first = nextNeedingBarcode(-1)
+    if (first < 0) return
+    setScanInOrder(true)
+    setScanRow(first)
+  }
+
+  function advanceScan(from) {
+    const next = scanInOrder ? nextNeedingBarcode(from) : -1
+    if (next < 0) {
+      setScanRow(null)
+      setScanInOrder(false)
+    } else {
+      setScanRow(next)
+    }
+  }
   // Un código que ya tiene otro producto no se puede repetir.
   const barcodeClash = (r) => {
     const code = r.barcode.trim()
@@ -423,9 +449,27 @@ export default function InvoiceImport({
 
               {/* Renglones */}
               <section>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-inkfaint">
-                  Productos ({rows.length})
-                </p>
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-inkfaint">
+                    Productos ({rows.length})
+                  </p>
+                  {cameraAvailable && pendingBarcodes > 0 && (
+                    <button
+                      type="button"
+                      onClick={startScanInOrder}
+                      className="flex items-center gap-1.5 rounded-lg border border-awning bg-awning-50 px-3 py-1.5 text-xs font-semibold text-awning-dark transition-colors hover:bg-awning-100"
+                    >
+                      <ScanBarcode size={14} strokeWidth={2.4} />
+                      Escanear los códigos en orden ({pendingBarcodes})
+                    </button>
+                  )}
+                </div>
+                {pendingBarcodes > 0 && (
+                  <p className="mb-3 text-xs text-inkfaint">
+                    La factura no trae el código de cada producto: está en el paquete. Escanealos para
+                    poder venderlos después con el lector.
+                  </p>
+                )}
                 <ul className="space-y-3">
                   {rows.map((r, idx) => {
                     const p = plan(r)
@@ -525,7 +569,10 @@ export default function InvoiceImport({
                                   {cameraAvailable && (
                                     <button
                                       type="button"
-                                      onClick={() => setScanRow(idx)}
+                                      onClick={() => {
+                                        setScanInOrder(false)
+                                        setScanRow(idx)
+                                      }}
                                       aria-label="Escanear el código con la cámara"
                                       className="flex shrink-0 items-center justify-center rounded-lg border border-line px-2.5 text-inkfaint transition-colors hover:border-awning hover:text-awning"
                                     >
@@ -678,13 +725,24 @@ export default function InvoiceImport({
 
       {scanRow !== null && (
         <CameraScanner
-          title="Código del producto"
-          hint={rows[scanRow] ? rows[scanRow].line.description : undefined}
+          title={scanInOrder ? 'Escaneá cada paquete' : 'Código del producto'}
+          hint={
+            rows[scanRow]
+              ? `${scanInOrder ? `Faltan ${pendingBarcodes} · ` : ''}${
+                  rows[scanRow].choice === 'new' ? rows[scanRow].newName : productById[rows[scanRow].choice]?.name || rows[scanRow].line.description
+                }`
+              : undefined
+          }
           onDetect={(code) => {
-            setRowBarcode(scanRow, code)
-            setScanRow(null)
+            const at = scanRow
+            setRowBarcode(at, code)
+            advanceScan(at)
           }}
-          onClose={() => setScanRow(null)}
+          onSkip={scanInOrder ? () => advanceScan(scanRow) : undefined}
+          onClose={() => {
+            setScanRow(null)
+            setScanInOrder(false)
+          }}
         />
       )}
     </div>
