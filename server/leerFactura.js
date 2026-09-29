@@ -133,7 +133,8 @@ function normalize(p) {
 function str(v) {
   if (v === null || v === undefined) return null
   const s = String(v).trim()
-  return s ? s : null
+  // A veces el modelo escribe "null" como texto en vez de dejarlo vacío.
+  return s && !/^(null|none|n\/a|-+)$/i.test(s) ? s : null
 }
 
 function digits(v) {
