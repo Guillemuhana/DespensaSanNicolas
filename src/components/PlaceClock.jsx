@@ -43,7 +43,7 @@ export default function PlaceClock({ compact = false }) {
     }
   }, [])
 
-  const time = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: TIME_ZONE })
+  const time = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: TIME_ZONE })
   const icon = weather ? weatherIcon(weather.code, weather.isDay) : null
 
   if (compact) {

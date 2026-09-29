@@ -379,18 +379,36 @@ function Sidebar({ tab, go, onLogout, collapsed, onToggle, onClose, layoutId, cl
                 onClick={() => go(t.id)}
                 aria-current={active ? 'page' : undefined}
                 title={expanded ? undefined : t.label}
-                className={`group relative flex w-full items-center rounded-xl text-left text-sm font-semibold transition-colors ${
-                  expanded ? 'gap-3 px-3 py-2.5' : 'justify-center px-0 py-3'
-                } ${active ? 'text-awning-dark' : 'text-inkfaint hover:bg-paper2/70 hover:text-ink'}`}
+                className={`group relative flex w-full items-center rounded-[0.875rem] text-left text-sm font-semibold transition-[color,background-color,transform] duration-200 active:scale-[0.98] ${
+                  expanded ? 'gap-3 px-2 py-1.5' : 'justify-center px-0 py-1.5'
+                } ${active ? 'text-ink' : 'text-inkfaint hover:bg-paper2/70 hover:text-ink'}`}
               >
+                {/* La marca de la opción elegida se desliza de una a otra:
+                    brillo detrás, borde con degradé que gira y fondo claro. */}
                 {active && (
                   <motion.span
                     layoutId={layoutId}
-                    className="absolute inset-0 rounded-xl bg-awning-50 ring-1 ring-awning-100"
+                    className="absolute inset-0"
                     transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-                  />
+                  >
+                    <span className="nav-glow" />
+                    <span className="absolute inset-0 rounded-[0.875rem] bg-gradient-to-r from-awning-50 via-surface to-surface" />
+                    <span className="nav-ring" />
+                  </motion.span>
                 )}
-                <Icon size={19} strokeWidth={2.2} className="relative shrink-0" />
+                <span
+                  className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.625rem] transition-all duration-200 ${
+                    active
+                      ? 'bg-gradient-to-br from-awning-400 to-awning text-white shadow-[0_4px_12px_-4px_rgba(7,104,45,0.6)]'
+                      : 'bg-paper2/70 text-inkfaint group-hover:bg-surface group-hover:text-awning group-hover:shadow-card'
+                  }`}
+                >
+                  <Icon
+                    size={18}
+                    strokeWidth={2.2}
+                    className="transition-transform duration-200 group-hover:scale-110"
+                  />
+                </span>
                 {expanded && (
                   <motion.span
                     initial={{ opacity: 0, x: -4 }}

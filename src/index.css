@@ -90,6 +90,56 @@ input {
   background: transparent;
 }
 
+/* ------------------------------------------------------------ menú activo */
+
+/* La opción elegida del menú lleva un borde con degradé que gira y un brillo
+   suave detrás. El ángulo se anima con @property; en navegadores que no lo
+   soportan el degradé queda quieto, que también se ve bien. */
+@property --nav-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes nav-spin {
+  to {
+    --nav-angle: 360deg;
+  }
+}
+
+.nav-ring,
+.nav-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 0.875rem;
+  background: conic-gradient(
+    from var(--nav-angle),
+    #07682d,
+    #3e9a5e,
+    #a3e635,
+    #f5c451,
+    #3e9a5e,
+    #07682d
+  );
+  animation: nav-spin 4s linear infinite;
+  pointer-events: none;
+}
+
+/* Sólo el borde: la máscara recorta el centro. */
+.nav-ring {
+  padding: 1.5px;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+.nav-glow {
+  filter: blur(10px);
+  opacity: 0.4;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
